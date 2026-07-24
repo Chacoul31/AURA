@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Aura-3</title>
+<title>Aura-4</title>
 <link rel="stylesheet" href="/vendor/katex.min.css">
 <script src="/vendor/katex.min.js"></script>
 <script src="/vendor/auto-render.min.js"></script>
@@ -12,7 +12,8 @@
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --bg:        #0a0c0d;
+    --bg:        #05060a;
+    --bg-deep:   #131f4a;
     --surface:   #131615;
     --surface2:  #1b1f1d;
     --border:    rgba(255,255,255,.08);
@@ -39,7 +40,7 @@
     --shadow:    0 8px 28px -8px rgba(0,0,0,.55), 0 2px 8px -2px rgba(0,0,0,.4);
     --shadow-sm: 0 2px 10px -3px rgba(0,0,0,.4);
   }
-  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); overflow: hidden; }
+  html, body { height: 100%; background: linear-gradient(180deg, var(--bg) 0%, var(--bg) 45%, #0a1024 78%, var(--bg-deep) 100%); color: var(--text); font-family: var(--font); overflow: hidden; }
   ::selection { background: rgba(143,191,131,.28); color: var(--text); }
 
   .app { display: flex; flex-direction: column; height: 100vh; max-width: 760px; margin: 0 auto; position: relative; }
@@ -375,8 +376,8 @@
           <path d="M12 12.5l-1.1 2h2.2l-1.1-2z" fill="#8fbf83"/>
         </svg>
       </div>
-      <h1>Aura-3</h1>
-      <p>Aura-3 propulsé par SanogoDeepVision.</p>
+      <h1>Aura-4</h1>
+      <p>Aura-4 propulsé par SanogoDeepVision.</p>
       <div class="chips">
         <div class="chip" onclick="suggest('Explique-moi le deep-learning')">Deep-Learning</div>
         <div class="chip" onclick="suggest('Aide-moi à débugger ce code Python')">Debug Python</div>
@@ -466,7 +467,7 @@ const OWL_SVG = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2
 
 const WELCOME_HTML = `<div class="welcome" id="welcome">
   <div class="welcome-logo">${OWL_SVG}</div>
-  <h1>AURA-3</h1>
+  <h1>AURA-4</h1>
   <p>Bonjour! je suis Aura  un modèle de langage propulsé par SanogoDeepVision.</p>
   <div class="chips">
     <div class="chip" onclick="suggest('Explique-moi Le Deep-learning')">Deep-learning</div>
