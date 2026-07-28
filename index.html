@@ -2,8 +2,9 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Aura-4</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#05060a">
+<title>Aura-omni</title>
 <link rel="stylesheet" href="/vendor/katex.min.css">
 <script src="/vendor/katex.min.js"></script>
 <script src="/vendor/auto-render.min.js"></script>
@@ -14,8 +15,8 @@
   :root {
     --bg:        #05060a;
     --bg-deep:   #131f4a;
-    --surface:   #131615;
-    --surface2:  #1b1f1d;
+    --surface:   #131719;
+    --surface2:  #1b2124;
     --border:    rgba(255,255,255,.08);
     --border-strong: rgba(143,191,131,.4);
     --text:      #eef1ec;
@@ -25,8 +26,8 @@
     --accent2:   #e8b84b;   /* ambre / or */
     --user-bub:  #223244;   /* ardoise bleutée */
     --user-text: #e2eef5;
-    --bot-bub:   #14171a;
-    --think-bg:  #101211;
+    --bot-bub:   #14181d;
+    --think-bg:  #10141a;
     --danger:    #e07a6a;
     --radius-lg: 20px;
     --radius-md: 14px;
@@ -40,10 +41,10 @@
     --shadow:    0 8px 28px -8px rgba(0,0,0,.55), 0 2px 8px -2px rgba(0,0,0,.4);
     --shadow-sm: 0 2px 10px -3px rgba(0,0,0,.4);
   }
-  html, body { height: 100%; background: linear-gradient(180deg, var(--bg) 0%, var(--bg) 45%, #0a1024 78%, var(--bg-deep) 100%); color: var(--text); font-family: var(--font); overflow: hidden; }
+  html, body { height: 100%; height: 100dvh; background: linear-gradient(180deg, var(--bg) 0%, var(--bg) 45%, #0a1024 78%, var(--bg-deep) 100%); color: var(--text); font-family: var(--font); overflow: hidden; }
   ::selection { background: rgba(143,191,131,.28); color: var(--text); }
 
-  .app { display: flex; flex-direction: column; height: 100vh; max-width: 760px; margin: 0 auto; position: relative; }
+  .app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; max-width: 760px; margin: 0 auto; position: relative; }
 
   /* ── Top bar ── */
   .topbar {
@@ -151,7 +152,7 @@
 
   /* ── Messages ── */
   .msg-row { display: flex; gap: 10px; margin: 12px 0; animation: fadeUp .4s var(--ease-out);
-    will-change: transform, opacity; }
+    will-change: transform, opacity; content-visibility: auto; contain-intrinsic-size: auto 80px; }
   @keyframes fadeUp { from{opacity:0;transform:translateY(12px) scale(.985)} to{opacity:1;transform:translateY(0) scale(1)} }
   .msg-row.user { flex-direction: row-reverse; }
   .bubble.bot { transition: min-height .2s var(--ease-out); }
@@ -225,6 +226,67 @@
     padding: 12px 14px; margin: 8px 0; overflow-x: auto; }
   pre::-webkit-scrollbar { height: 5px; }
   pre::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  .code-copy-btn {
+    position: absolute; top: 8px; right: 8px; width: 26px; height: 26px;
+    border-radius: 7px; border: 1px solid var(--border); background: var(--surface2);
+    color: var(--sub); cursor: pointer; display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity .2s var(--ease-out), border-color .2s var(--ease-out), color .2s var(--ease-out), transform .2s var(--ease-spring);
+  }
+  pre:hover .code-copy-btn { opacity: 1; }
+  .code-copy-btn svg { width: 13px; height: 13px; }
+  .code-copy-btn:hover { border-color: var(--accent); color: var(--text); transform: scale(1.08); }
+  .code-copy-btn.copied { color: var(--accent); border-color: var(--accent); opacity: 1; }
+  .retry-btn {
+    margin-top: 8px; padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border-strong);
+    background: var(--surface2); color: var(--text); font-size: 12.5px; font-family: var(--font);
+    cursor: pointer; transition: all .25s var(--ease-out);
+  }
+  .retry-btn:hover { border-color: var(--danger); color: var(--danger); transform: translateY(-1px); }
+  .retry-btn:active { transform: translateY(0) scale(.97); }
+
+  /* ── Onboarding : demande du prénom à la première connexion ── */
+  .name-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.68); backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+    opacity: 0; pointer-events: none; transition: opacity .3s var(--ease-out); z-index: 60;
+  }
+  .name-overlay.open { opacity: 1; pointer-events: auto; }
+  .name-card {
+    width: 100%; max-width: 360px; background: var(--surface); border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg); box-shadow: var(--shadow); padding: 28px 24px;
+    text-align: center; transform: translateY(10px) scale(.97); opacity: 0;
+    transition: transform .38s var(--ease-spring), opacity .3s var(--ease-out);
+  }
+  .name-overlay.open .name-card { transform: translateY(0) scale(1); opacity: 1; }
+  .name-card .welcome-logo { margin: 0 auto 14px; width: 46px; height: 46px; }
+  .name-card .welcome-logo svg { width: 100%; height: 100%; }
+  .name-card h2 { font-family: var(--font-display); font-size: 19px; font-weight: 600; letter-spacing: .3px; margin-bottom: 6px; }
+  .name-card p { font-size: 13px; color: var(--sub); margin-bottom: 18px; line-height: 1.5; }
+  .name-card input {
+    width: 100%; padding: 12px 14px; border-radius: var(--radius-md); border: 1px solid var(--border);
+    background: var(--surface2); color: var(--text); font-family: var(--font); font-size: 14.5px;
+    outline: none; transition: border-color .25s var(--ease-out); text-align: center;
+  }
+  .name-card input:focus { border-color: var(--accent); }
+  .name-card .name-submit {
+    margin-top: 14px; width: 100%; padding: 11px 14px; border-radius: var(--radius-md);
+    border: 1px solid var(--border-strong); background: var(--accent); color: #0c130c;
+    font-family: var(--font); font-size: 14px; font-weight: 600; cursor: pointer;
+    transition: all .25s var(--ease-out);
+  }
+  .name-card .name-submit:hover { filter: brightness(1.08); transform: translateY(-1px); }
+  .name-card .name-submit:active { transform: translateY(0) scale(.97); }
+  .name-card .name-skip {
+    margin-top: 10px; background: none; border: none; color: var(--muted); font-size: 12px;
+    font-family: var(--font); cursor: pointer; text-decoration: underline; text-underline-offset: 2px;
+  }
+  .name-card .name-skip:hover { color: var(--sub); }
+  .offline-tag {
+    display: inline-block; margin-top: 8px; font-size: 11px; color: var(--muted);
+    font-style: italic;
+  }
+  .send-btn.morphing { animation: morphSwap .22s var(--ease-spring); }
+  @keyframes morphSwap { 0%{transform:scale(1) rotate(0)} 50%{transform:scale(.72) rotate(-40deg); opacity:.6} 100%{transform:scale(1) rotate(0); opacity:1} }
   pre code { padding: 0; background: transparent; }
   code { font-family: var(--mono); font-size: 12px; color: #d6dcd2; background: rgba(255,255,255,.06);
     padding: 1px 5px; border-radius: 4px; }
@@ -257,17 +319,40 @@
 
   /* ── Images attachées (bulles) ── */
   .bubble img.attached { max-width: 220px; max-height: 220px; object-fit: cover;
-    border-radius: var(--radius-sm); margin: 0 0 8px; display: block; }
+    border-radius: var(--radius-sm); margin: 0 0 8px; display: block; cursor: zoom-in;
+    transition: opacity .2s var(--ease-out); }
+  .bubble img.attached:hover { opacity: .9; }
   .bubble img.attached + img.attached { margin-top: -2px; }
 
+  .lightbox {
+    position: fixed; inset: 0; background: rgba(2,3,5,.88); backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center; padding: 24px;
+    opacity: 0; pointer-events: none; transition: opacity .25s var(--ease-out); z-index: 50;
+  }
+  .lightbox.open { opacity: 1; pointer-events: auto; }
+  .lightbox img { max-width: 100%; max-height: 100%; border-radius: var(--radius-md);
+    box-shadow: var(--shadow); transform: scale(.94); transition: transform .25s var(--ease-out); cursor: zoom-out; }
+  .lightbox.open img { transform: scale(1); }
+
   /* ── Bottom bar ── */
-  .bottom { flex-shrink: 0; padding: 10px 16px 20px; }
+  .bottom { flex-shrink: 0; padding: 10px 16px calc(20px + env(safe-area-inset-bottom)); position: relative; }
+  .scroll-bottom-btn {
+    position: absolute; top: -46px; left: 50%; transform: translateX(-50%) translateY(8px) scale(.9);
+    width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--border-strong);
+    background: var(--surface); color: var(--sub); display: flex; align-items: center; justify-content: center;
+    cursor: pointer; box-shadow: var(--shadow-sm); opacity: 0; pointer-events: none;
+    transition: opacity .25s var(--ease-out), transform .25s var(--ease-spring);
+  }
+  .scroll-bottom-btn.visible { opacity: 1; pointer-events: auto; transform: translateX(-50%) translateY(0) scale(1); }
+  .scroll-bottom-btn:hover { border-color: var(--accent); color: var(--text); }
+  .scroll-bottom-btn svg { width: 15px; height: 15px; }
   .input-wrap {
     background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
     padding: 12px 14px; box-shadow: var(--shadow-sm);
     transition: border-color .3s var(--ease-out), box-shadow .3s var(--ease-out);
   }
   .input-wrap:focus-within { border-color: var(--border-strong); box-shadow: 0 0 0 3px rgba(143,191,131,.1), var(--shadow-sm); }
+  .input-wrap.drag-over { border-color: var(--accent2); box-shadow: 0 0 0 3px rgba(232,184,75,.15), var(--shadow-sm); }
 
   /* ── Aperçu des images à envoyer ── */
   .image-preview-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
@@ -307,7 +392,7 @@
   .send-btn.stop-mode { background: var(--surface2); border: 1px solid var(--border-strong);
     opacity: 1; color: var(--danger); }
 
-  .tools { display: flex; align-items: center; gap: 6px; margin-top: 10px; }
+  .tools { display: flex; align-items: center; gap: 6px; margin-top: 10px; position: relative; }
   .tool-btn {
     padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border);
     background: transparent; color: var(--sub); font-size: 12px; cursor: pointer;
@@ -318,7 +403,31 @@
   .tool-btn svg { width: 13px; height: 13px; }
   .tool-btn:hover { border-color: var(--accent); color: var(--text); background: var(--surface2); transform: translateY(-1px); }
   .tool-btn.on    { background: var(--accent); border-color: var(--accent); color: #12140f; font-weight: 600; }
+  .tool-btn.active-menu { border-color: var(--accent2); color: var(--text); background: var(--surface2); }
+  .tool-btn .chev { width: 9px; height: 9px; margin-left: -2px; transition: transform .25s var(--ease-out); opacity: .7; }
+  .tool-btn.active-menu .chev { transform: rotate(180deg); }
   .tool-sep { flex: 1; }
+
+  /* ── Menu de suggestions "Expert" ── */
+  .expert-menu {
+    position: absolute; bottom: calc(100% + 10px); left: 0; width: min(300px, 86vw);
+    background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-md);
+    box-shadow: var(--shadow); padding: 7px; z-index: 20;
+    opacity: 0; transform: translateY(8px) scale(.97); pointer-events: none;
+    transform-origin: bottom left;
+    transition: opacity .22s var(--ease-out), transform .22s var(--ease-spring);
+  }
+  .expert-menu.open { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+  .expert-menu-label { font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted);
+    padding: 6px 9px 4px; }
+  .expert-menu-item {
+    display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+    padding: 9px 9px; border-radius: var(--radius-sm); border: none; background: transparent;
+    color: var(--sub); font-size: 13px; font-family: var(--font); cursor: pointer;
+    transition: background .18s var(--ease-out), color .18s var(--ease-out), transform .18s var(--ease-out);
+  }
+  .expert-menu-item:hover { background: var(--surface2); color: var(--text); transform: translateX(2px); }
+  .expert-menu-item .emi-icon { font-size: 15px; flex-shrink: 0; width: 18px; text-align: center; }
 
   .model-badge { font-size: 11px; color: var(--muted); text-align: center; margin-top: 8px; letter-spacing: .2px; }
 
@@ -330,6 +439,20 @@
     animation: drift 10s ease-in-out infinite alternate;
   }
   @keyframes drift { from{transform:translateX(-55%) scale(1)} to{transform:translateX(-45%) scale(1.12)} }
+  .glow2 {
+    position: fixed; width: 480px; height: 480px; border-radius: 50%; pointer-events: none;
+    filter: blur(130px); opacity: .1; z-index: 0;
+    background: radial-gradient(circle, var(--bg-deep), transparent);
+    bottom: -12%; left: 50%; transform: translateX(-50%);
+    animation: drift2 13s ease-in-out infinite alternate;
+  }
+  @keyframes drift2 { from{transform:translateX(-58%) scale(1)} to{transform:translateX(-42%) scale(1.15)} }
+
+  .topbar-icon:focus-visible, .tool-btn:focus-visible, .chip:focus-visible,
+  .send-btn:focus-visible, .menu-close:focus-visible, .menu-new:focus-visible,
+  .menu-item:focus-visible, #msg:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
@@ -338,11 +461,16 @@
 </head>
 <body>
 
+<div class="glow"></div>
+<div class="glow2"></div>
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <img id="lightboxImg" src="" alt="">
+</div>
 <div class="menu-overlay" id="menuOverlay" onclick="closeMenu()"></div>
 <div class="menu-panel" id="menuPanel">
   <div class="menu-head">
     <span>Historique</span>
-    <button class="menu-close" onclick="closeMenu()">
+    <button class="menu-close" onclick="closeMenu()" aria-label="Fermer l'historique">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>
     </button>
   </div>
@@ -353,20 +481,38 @@
   <div class="menu-list" id="menuList"></div>
 </div>
 
+<div class="name-overlay" id="nameOverlay" role="dialog" aria-modal="true" aria-labelledby="nameCardTitle">
+  <div class="name-card">
+    <div class="welcome-logo">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 3c-3.5 0-6 2.7-6 6.2 0 2 .9 3.5 2 5-1 .6-2 1.8-2 3.3 0 1.9 1.6 3.5 3.6 3.5.9 0 1.7-.3 2.4-.9.7.6 1.5.9 2.4.9 2 0 3.6-1.6 3.6-3.5 0-1.5-1-2.7-2-3.3 1.1-1.5 2-3 2-5C18 5.7 15.5 3 12 3z" stroke="#8fbf83" stroke-width="1.3"/>
+        <circle cx="9.3" cy="9.5" r="1.4" fill="#8fbf83"/>
+        <circle cx="14.7" cy="9.5" r="1.4" fill="#e8b84b"/>
+        <path d="M12 12.5l-1.1 2h2.2l-1.1-2z" fill="#8fbf83"/>
+      </svg>
+    </div>
+    <h2 id="nameCardTitle">Bienvenue sur Aura 👋</h2>
+    <p>Comment tu t'appelles ? Ça me permet de personnaliser un peu nos échanges.</p>
+    <input type="text" id="nameInput" placeholder="Ton prénom…" maxlength="30" autocomplete="given-name" onkeydown="if(event.key==='Enter'){event.preventDefault();submitUserName();}">
+    <button class="name-submit" type="button" onclick="submitUserName()">Continuer</button>
+    <button class="name-skip" type="button" onclick="submitUserName(true)">Passer cette étape</button>
+  </div>
+</div>
+
 <div class="app">
 
   <div class="topbar">
-    <div class="topbar-icon" title="Historique" onclick="openMenu()">
+    <div class="topbar-icon" title="Historique" onclick="openMenu()" role="button" tabindex="0" aria-label="Ouvrir l'historique" onkeydown="if(event.key==='Enter')openMenu()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
     </div>
-    <div class="topbar-title"><span class="status-dot"></span>AURA</div>
-    <div class="topbar-icon" title="Nouvelle conversation" onclick="startNewConversation()">
+    <div class="topbar-title"><span class="status-dot"></span>Aura-omni</div>
+    <div class="topbar-icon" title="Nouvelle conversation" onclick="startNewConversation()" role="button" tabindex="0" aria-label="Nouvelle conversation" onkeydown="if(event.key==='Enter')startNewConversation()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     </div>
   </div>
   <div class="meander"></div>
 
-  <div class="chat" id="chat">
+  <div class="chat" id="chat" onscroll="handleChatScroll()">
     <div class="welcome" id="welcome">
       <div class="welcome-logo">
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -376,42 +522,59 @@
           <path d="M12 12.5l-1.1 2h2.2l-1.1-2z" fill="#8fbf83"/>
         </svg>
       </div>
-      <h1>Aura-4</h1>
-      <p>Aura-4 propulsé par SanogoDeepVision.</p>
+      <h1 id="welcomeTitle">Comment puis-je vous aider ? 😊</h1>
+      <p>Aura peut faire des erreurs</p>
       <div class="chips">
-        <div class="chip" onclick="suggest('Explique-moi le deep-learning')">Deep-Learning</div>
-        <div class="chip" onclick="suggest('Aide-moi à débugger ce code Python')">Debug Python</div>
-        <div class="chip" onclick="suggest('Aide-moi sur un exercice ')">Exercice </div>
-        <div class="chip" onclick="suggest('Aide-moi à rédiger un CV')">Rédiger un cv</div>
-        <div class="chip" onclick="suggest('Résume ce concept complexe')">Résumer un concept</div>
+       </div>
       </div>
-    </div>
   </div>
 
   <div class="bottom">
-    <div class="input-wrap">
+    <button class="scroll-bottom-btn" id="scrollBottomBtn" onclick="scrollDown(true)" aria-label="Revenir en bas">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+    <div class="input-wrap" id="inputWrap"
+      ondragover="event.preventDefault(); inputWrap.classList.add('drag-over')"
+      ondragleave="inputWrap.classList.remove('drag-over')"
+      ondrop="handleImageDrop(event)">
       <div class="image-preview-row" id="imagePreviewRow"></div>
       <div class="input-row">
         <input type="file" id="imageInput" accept="image/*" multiple hidden onchange="handleImageSelect(event)">
-        <textarea id="msg" rows="1" placeholder="Envoyer un message…" oninput="autoResize(this);toggleSend()"
-          onkeydown="handleKey(event)"></textarea>
-        <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+        <textarea id="msg" rows="1" placeholder="Message Aura…" oninput="autoResize(this);toggleSend()"
+          onkeydown="handleKey(event)" onpaste="handlePaste(event)"></textarea>
+        <button class="send-btn" id="sendBtn" onclick="sendMessage()" aria-label="Envoyer le message">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="6 11 12 5 18 11"/></svg>
         </button>
       </div>
       <div class="tools">
-        <button class="tool-btn" id="thinkBtn" onclick="toggle('think')">
+        <button class="tool-btn" id="thinkBtn" onclick="toggle('think')" aria-label="Activer le mode réflexion">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none"/></svg>
-          Think
+          Smart
         </button>
-        <button class="tool-btn" id="imageBtn" onclick="document.getElementById('imageInput').click()">
+        <button class="tool-btn" id="expertBtn" onclick="toggleExpertMenu(event)" aria-haspopup="true" aria-expanded="false" aria-label="Afficher les suggestions expert">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4L12 2z"/></svg>
+          Expert
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <button class="tool-btn" id="imageBtn" onclick="document.getElementById('imageInput').click()" aria-label="Joindre une image">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
           Image
         </button>
         <div class="tool-sep"></div>
+        <div class="expert-menu" id="expertMenu" role="menu">
+          <div class="expert-menu-label">Suggestions expert</div>
+          <button class="expert-menu-item" role="menuitem" onclick="expertPrompt('Aide-moi à rédiger un CV professionnel. Voici mon profil : ')"><span class="emi-icon">📄</span>Faire un CV</button>
+          <button class="expert-menu-item" role="menuitem" onclick="expertPrompt('Rédige une lettre de motivation pour le poste suivant : ')"><span class="emi-icon">✉️</span>Lettre de motivation</button>
+          <button class="expert-menu-item" role="menuitem" onclick="expertPrompt('Relis et corrige ce code, explique les problèmes trouvés :\n\n')"><span class="emi-icon">💻</span>Revoir mon code</button>
+          <button class="expert-menu-item" role="menuitem" onclick="expertPrompt('Fais-moi une fiche de révision claire sur ce sujet: ')"><span class="emi-icon">📶</span>Fiche de révision </button>
+          <button class="expert-menu-item" role="menuitem" onclick="expertPrompt('Résume ce texte de façon claire et structurée :\n\n')"><span class="emi-icon">📝</span>Résumer un texte</button>
+          <button class="expert-menu-item" role="menuitem" onclick="expertPrompt('Explique-moi ce concept étape par étape avec un exemple : ')"><span class="emi-icon">🧠</span>Expliquer un concept</button>
+        </div>
       </div>
     </div>
-    <div class="model-badge">Aura  peut faire des erreurs</div>
+    <div class="model-badge">Aura powered by Sanogo. All right reserved copyright 2026</div>
+    
+    
   </div>
 
 </div>
@@ -419,13 +582,97 @@
 <script>
 const chat = document.getElementById('chat');
 const msgEl = document.getElementById('msg');
+const lightboxEl = document.getElementById('lightbox');
+const lightboxImgEl = document.getElementById('lightboxImg');
+const inputWrapEl = document.getElementById('inputWrap');
+const imagePreviewRowEl = document.getElementById('imagePreviewRow');
+const sendBtnEl = document.getElementById('sendBtn');
+const thinkBtnEl = document.getElementById('thinkBtn');
+const expertBtnEl = document.getElementById('expertBtn');
+const expertMenuEl = document.getElementById('expertMenu');
+const menuOverlayEl = document.getElementById('menuOverlay');
+const menuPanelEl = document.getElementById('menuPanel');
+const menuListEl = document.getElementById('menuList');
+const scrollBottomBtnEl = document.getElementById('scrollBottomBtn');
 let thinking = false, streaming = false, stopRequested = false;
 let currentConversationId = null;
 let activeReader = null;
 let attachedImages = []; // data-URLs en attente d'envoi
+let lastFailedMessage = null;
+
+// ── Prénom de l'utilisateur (mémorisé en local, demandé à la 1ère connexion) ──
+const NAME_STORAGE_KEY = 'aura_user_name';
+let userName = (localStorage.getItem(NAME_STORAGE_KEY) || '').trim() || null;
+const nameOverlayEl = document.getElementById('nameOverlay');
+const nameInputEl = document.getElementById('nameInput');
+
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+// Beaucoup de formulations différentes pour ne jamais sonner robotique.
+const GREETINGS_WITH_NAME = [
+  'On y va {name} ! 😊', 'Content de te revoir, {name} !', 'Prêt(e), {name} ? Allons-y ! 🚀',
+  'Salut {name}, qu\'est-ce qu\'on fait aujourd\'hui ?', '{name}, je t\'écoute !',
+  'C\'est parti, {name} !', 'Hey {name} 👋, comment je peux t\'aider ?',
+  'Re-bonjour {name} !', '{name}, à quoi je peux servir aujourd\'hui ?',
+  'On s\'y met, {name} ? 💪', 'Bien content de t\'aider, {name}.',
+  '{name}, dis-moi tout.'
+];
+const GREETINGS_NO_NAME = [
+  'Comment puis-je vous aider ? 😊', 'Je vous écoute !', 'Sur quoi travaille-t-on ?',
+  'On y va 🤗 !', 'Dites-moi tout.', 'Prêt(e) quand vous l\'êtes.'
+];
+function buildGreeting() {
+  return userName ? pick(GREETINGS_WITH_NAME).replace('{name}', userName) : pick(GREETINGS_NO_NAME);
+}
+function buildWelcomeHTML() {
+  return `<div class="welcome" id="welcome">
+  <div class="welcome-logo">${OWL_SVG}</div>
+  <h1>${escapeHTML(buildGreeting())}</h1>
+  <div class="chips">
+      </div>
+      </div>`;
+}
+function refreshWelcomeIfShown() {
+  if (document.getElementById('welcome')) chat.innerHTML = buildWelcomeHTML();
+}
+function openNameOverlay() {
+  nameOverlayEl.classList.add('open');
+  setTimeout(() => nameInputEl.focus(), 350);
+}
+function closeNameOverlay() { nameOverlayEl.classList.remove('open'); }
+function submitUserName(skipped) {
+  const val = (nameInputEl.value || '').trim();
+  if (!skipped && val) {
+    userName = val.slice(0, 30);
+    localStorage.setItem(NAME_STORAGE_KEY, userName);
+  }
+  closeNameOverlay();
+  refreshWelcomeIfShown();
+}
 
 function handleImageSelect(e) {
-  const files = Array.from(e.target.files || []);
+  handleImageFiles(e.target.files);
+  e.target.value = '';
+}
+function openLightbox(src) {
+  lightboxImgEl.src = src;
+  lightboxEl.classList.add('open');
+}
+function closeLightbox() {
+  lightboxEl.classList.remove('open');
+}
+function handlePaste(e) {
+  const items = Array.from(e.clipboardData?.items || []);
+  const imageFiles = items.filter(it => it.type.startsWith('image/')).map(it => it.getAsFile());
+  if (imageFiles.length) { e.preventDefault(); handleImageFiles(imageFiles); }
+}
+function handleImageDrop(e) {
+  e.preventDefault();
+  inputWrapEl.classList.remove('drag-over');
+  handleImageFiles(e.dataTransfer?.files);
+}
+function handleImageFiles(fileList) {
+  const files = Array.from(fileList || []);
   for (const f of files) {
     if (!f.type.startsWith('image/')) continue;
     const reader = new FileReader();
@@ -436,7 +683,6 @@ function handleImageSelect(e) {
     };
     reader.readAsDataURL(f);
   }
-  e.target.value = '';
 }
 function removeAttachedImage(idx) {
   attachedImages.splice(idx, 1);
@@ -444,7 +690,7 @@ function removeAttachedImage(idx) {
   toggleSend();
 }
 function renderImagePreviews() {
-  const row = document.getElementById('imagePreviewRow');
+  const row = imagePreviewRowEl;
   row.innerHTML = '';
   attachedImages.forEach((src, idx) => {
     const thumb = document.createElement('div');
@@ -465,25 +711,13 @@ const ICON_STOP = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="7
 const ICON_TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
 const OWL_SVG = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3c-3.5 0-6 2.7-6 6.2 0 2 .9 3.5 2 5-1 .6-2 1.8-2 3.3 0 1.9 1.6 3.5 3.6 3.5.9 0 1.7-.3 2.4-.9.7.6 1.5.9 2.4.9 2 0 3.6-1.6 3.6-3.5 0-1.5-1-2.7-2-3.3 1.1-1.5 2-3 2-5C18 5.7 15.5 3 12 3z" stroke="#8fbf83" stroke-width="1.3"/><circle cx="9.3" cy="9.5" r="1.4" fill="#8fbf83"/><circle cx="14.7" cy="9.5" r="1.4" fill="#e8b84b"/><path d="M12 12.5l-1.1 2h2.2l-1.1-2z" fill="#8fbf83"/></svg>';
 
-const WELCOME_HTML = `<div class="welcome" id="welcome">
-  <div class="welcome-logo">${OWL_SVG}</div>
-  <h1>AURA-4</h1>
-  <p>Bonjour! je suis Aura  un modèle de langage propulsé par SanogoDeepVision.</p>
-  <div class="chips">
-    <div class="chip" onclick="suggest('Explique-moi Le Deep-learning')">Deep-learning</div>
-    <div class="chip" onclick="suggest('Aide-moi à débugger ce code Python')">Debug Python</div>
-    <div class="chip" onclick="suggest('Aide-moi sur un exercice')">Exercice </div>
-    <div class="chip" onclick="suggest('Aide-moi à rédiger un CV')">rédiger un CV</div>
-    <div class="chip" onclick="suggest('Résume ce concept complexe')">Résumer un concept</div>
-  </div></div>`;
-
 function autoResize(el) {
   el.style.height = 'auto';
   el.style.height = Math.min(el.scrollHeight, 140) + 'px';
 }
 function toggleSend() {
   if (streaming) return;
-  const btn = document.getElementById('sendBtn');
+  const btn = sendBtnEl;
   btn.classList.toggle('active', msgEl.value.trim().length > 0 || attachedImages.length > 0);
 }
 function handleKey(e) {
@@ -495,21 +729,54 @@ function suggest(text) {
 function toggle(name) {
   if (name === 'think') {
     thinking = !thinking;
-    document.getElementById('thinkBtn').classList.toggle('on', thinking);
+    thinkBtnEl.classList.toggle('on', thinking);
   }
 }
 
+// ── Menu de suggestions "Expert" ──
+function toggleExpertMenu(e) {
+  if (e) e.stopPropagation();
+  const open = expertMenuEl.classList.toggle('open');
+  expertBtnEl.classList.toggle('active-menu', open);
+  expertBtnEl.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+function closeExpertMenu() {
+  expertMenuEl.classList.remove('open');
+  expertBtnEl.classList.remove('active-menu');
+  expertBtnEl.setAttribute('aria-expanded', 'false');
+}
+function expertPrompt(text) {
+  msgEl.value = text;
+  autoResize(msgEl);
+  toggleSend();
+  closeExpertMenu();
+  msgEl.focus();
+  msgEl.selectionStart = msgEl.selectionEnd = msgEl.value.length;
+}
+document.addEventListener('click', (e) => {
+  if (expertMenuEl.classList.contains('open') && !expertMenuEl.contains(e.target) && e.target !== expertBtnEl && !expertBtnEl.contains(e.target)) {
+    closeExpertMenu();
+  }
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && expertMenuEl.classList.contains('open')) closeExpertMenu();
+});
+
 // ── Mode bouton envoyer / arrêter ──
 function setSendMode(mode) {
-  const btn = document.getElementById('sendBtn');
+  const btn = sendBtnEl;
+  btn.classList.add('morphing');
+  setTimeout(() => btn.classList.remove('morphing'), 220);
   if (mode === 'stop') {
     btn.classList.add('stop-mode', 'active');
     btn.innerHTML = ICON_STOP;
     btn.onclick = stopGeneration;
+    btn.setAttribute('aria-label', 'Arrêter la génération');
   } else {
     btn.classList.remove('stop-mode');
     btn.innerHTML = ICON_SEND;
     btn.onclick = sendMessage;
+    btn.setAttribute('aria-label', 'Envoyer le message');
     toggleSend();
   }
 }
@@ -521,16 +788,23 @@ async function stopGeneration() {
 
 // ── Menu / historique ──
 function openMenu() {
-  document.getElementById('menuOverlay').classList.add('open');
-  document.getElementById('menuPanel').classList.add('open');
+  menuOverlayEl.classList.add('open');
+  menuPanelEl.classList.add('open');
+  menuPanelEl.setAttribute('aria-modal', 'true');
   loadConversationList();
 }
 function closeMenu() {
-  document.getElementById('menuOverlay').classList.remove('open');
-  document.getElementById('menuPanel').classList.remove('open');
+  menuOverlayEl.classList.remove('open');
+  menuPanelEl.classList.remove('open');
+  menuPanelEl.removeAttribute('aria-modal');
 }
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if (lightboxEl.classList.contains('open')) closeLightbox();
+  else if (menuPanelEl.classList.contains('open')) closeMenu();
+});
 async function loadConversationList() {
-  const list = document.getElementById('menuList');
+  const list = menuListEl;
   try {
     const res = await fetch('/conversations');
     const data = await res.json();
@@ -567,7 +841,7 @@ async function loadConversation(id) {
     currentConversationId = conv.id;
     chat.innerHTML = '';
     if (!conv.messages.length) {
-      chat.innerHTML = WELCOME_HTML;
+      chat.innerHTML = buildWelcomeHTML();
     } else {
       for (const m of conv.messages) {
         if (m.role === 'user') {
@@ -578,20 +852,20 @@ async function loadConversation(id) {
       }
     }
     closeMenu();
-    scrollDown();
+    scrollDown(true);
   } catch (e) {}
 }
 async function deleteConversation(id) {
   try { await fetch('/conversations/' + id, { method: 'DELETE' }); } catch (e) {}
   if (id === currentConversationId) {
     currentConversationId = null;
-    chat.innerHTML = WELCOME_HTML;
+    chat.innerHTML = buildWelcomeHTML();
   }
   loadConversationList();
 }
 function startNewConversation() {
   currentConversationId = null;
-  chat.innerHTML = WELCOME_HTML;
+  chat.innerHTML = buildWelcomeHTML();
   closeMenu();
 }
 
@@ -605,12 +879,12 @@ function addUserBubble(text, images) {
   const bub = document.createElement('div');
   bub.className = 'bubble user';
   let html = '';
-  for (const src of (images || [])) html += `<img class="attached" src="${src}">`;
+  for (const src of (images || [])) html += `<img class="attached" src="${src}" loading="lazy" decoding="async" onclick="openLightbox('${src}')">`;
   html += escapeHTML(text || '');
   bub.innerHTML = html;
   row.appendChild(av); row.appendChild(bub);
   chat.appendChild(row);
-  scrollDown();
+  scrollDown(true);
 }
 
 function startBotMessage() {
@@ -645,7 +919,19 @@ function startBotMessage() {
 function escapeHTML(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
 }
-function scrollDown() { chat.scrollTop = chat.scrollHeight; }
+function scrollDown(force) {
+  if (force || isNearBottom()) chat.scrollTop = chat.scrollHeight;
+  updateScrollBottomBtn();
+}
+function isNearBottom() {
+  return chat.scrollHeight - chat.scrollTop - chat.clientHeight < 120;
+}
+function handleChatScroll() { updateScrollBottomBtn(); }
+function updateScrollBottomBtn() {
+  const btn = scrollBottomBtnEl;
+  if (!btn) return;
+  btn.classList.toggle('visible', !isNearBottom());
+}
 
 function showTyping() {
   const row = document.createElement('div');
@@ -664,15 +950,70 @@ function hideTyping() {
   if (t) t.remove();
 }
 
-async function sendMessage() {
-  if (streaming) return;
-  const text = msgEl.value.trim();
-  if (!text && attachedImages.length === 0) return;
+// ── Réponses locales de secours ──
+// Quand le serveur (le modèle local) est injoignable, Aura essaie quand même
+// de répondre aux questions simples au lieu d'afficher juste un message d'erreur.
+const OFFLINE_THANKS = ['Avec plaisir {name}!', 'De rien {name}, toujours là pour ça.', 'Je t\'en prie {name} 😊', 'Content d\'avoir pu aider {name}.'];
+const OFFLINE_BYE = ['À bientôt {name} !', 'À plus tard {name} 👋', 'Bonne continuation {name} !', 'On se retrouve dès que le serveur est de retour, {name}.'];
+const OFFLINE_HELLO = ['Salut {name} !', 'Hey {name}, comment ça va ?', 'Coucou {name} !', 'Bonjour {name} 😊'];
+const OFFLINE_HOWAREYOU = ['Ça va bien, merci {name} ! Et toi ?', 'En pleine forme, {name}, et toi ?', 'Tout va bien de mon côté {name} !'];
+const OFFLINE_IDENTITY = [
+  'Je suis Aura, ton assistant IA local créé par Sanogo. En ce moment le serveur du modèle principal est injoignable, donc je réponds avec quelques repères de base seulement.',
+  'Aura, assistant IA local conçu par Sanogo — pour l\'instant je fonctionne en mode dégradé car le serveur ne répond pas.'
+];
 
-  const imagesToSend = attachedImages.slice();
-  addUserBubble(text, imagesToSend);
-  msgEl.value = ''; autoResize(msgEl);
-  attachedImages = []; renderImagePreviews();
+function fillName(str) { return str.replace('{name}', userName || ''); }
+
+function offlineRespond(rawText) {
+  const t = (rawText || '').toLowerCase().trim();
+  if (!t) return null;
+
+  if (/^(salut|bonjour|coucou|hello|hey|yo|bonsoir)\b/.test(t)) return fillName(pick(OFFLINE_HELLO));
+  if (/(comment\s*(ça|ca)\s*va|comment vas[- ]tu|tu vas bien)/.test(t)) return fillName(pick(OFFLINE_HOWAREYOU));
+  if (/(qui es[- ]tu|t'es qui|tu es qui|c'est quoi aura|présente[- ]toi)/.test(t)) return pick(OFFLINE_IDENTITY);
+  if (/(quel est mon (nom|prénom)|comment je m'appelle|tu connais mon (nom|prénom))/.test(t)) {
+    return userName ? `Tu t'appelles ${userName} ! 😊` : "Je ne connais pas encore ton prénom — tu peux me le dire, je m'en souviendrai.";
+  }
+  if (/(quelle heure|il est quelle heure)/.test(t)) {
+    return `Il est ${new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}.`;
+  }
+  if (/(quelle (est la )?date|on est quel jour|quel jour (sommes|on est)|aujourd'hui on est)/.test(t)) {
+    return `Nous sommes le ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}.`;
+  }
+  if (/^(merci|thanks|thank you)\b/.test(t)) return fillName(pick(OFFLINE_THANKS));
+  if (/^(au revoir|bye|à plus|a plus|à bientôt)\b/.test(t)) return fillName(pick(OFFLINE_BYE));
+
+  const mathMatch = t.match(/^\s*(-?\d+(?:[.,]\d+)?)\s*([+\-*/x×])\s*(-?\d+(?:[.,]\d+)?)\s*\??\s*$/);
+  if (mathMatch) {
+    const a = parseFloat(mathMatch[1].replace(',', '.'));
+    const op = mathMatch[2] === 'x' || mathMatch[2] === '×' ? '*' : mathMatch[2];
+    const b = parseFloat(mathMatch[3].replace(',', '.'));
+    let result;
+    if (op === '+') result = a + b;
+    else if (op === '-') result = a - b;
+    else if (op === '*') result = a * b;
+    else if (op === '/') result = b !== 0 ? a / b : null;
+    if (result !== null && result !== undefined && !Number.isNaN(result)) {
+      return `${Math.round(result * 1000) / 1000}`;
+    }
+  }
+  return null; // rien de pertinent à répondre hors-ligne
+}
+
+async function sendMessage(retryText, retryImages) {
+  if (streaming) return;
+  closeExpertMenu();
+  const isRetry = retryText !== undefined;
+  const text = isRetry ? retryText : msgEl.value.trim();
+  const imagesToSend = isRetry ? (retryImages || []) : attachedImages.slice();
+  if (!text && imagesToSend.length === 0) return;
+
+  if (!isRetry) {
+    addUserBubble(text, imagesToSend);
+    msgEl.value = ''; autoResize(msgEl);
+    attachedImages = []; renderImagePreviews();
+  }
+  lastFailedMessage = { text, images: imagesToSend };
 
   showTyping();
   streaming = true;
@@ -706,7 +1047,7 @@ async function sendMessage() {
     const res = await fetch('/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: text, think: thinking, conversation_id: currentConversationId, images: imagesToSend })
+      body: JSON.stringify({ message: text, think: thinking, conversation_id: currentConversationId, images: imagesToSend, user_name: userName || undefined })
     });
 
     hideTyping();
@@ -789,8 +1130,33 @@ async function sendMessage() {
     scrollDown();
   } catch (e) {
     hideTyping();
+    const offlineAnswer = offlineRespond(text);
     const { bub } = startBotMessage();
-    bub.innerHTML = 'Erreur de connexion. Vérifiez que le serveur est lancé.';
+    bub.innerHTML = '';
+    if (offlineAnswer) {
+      // Le serveur est injoignable mais Aura peut quand même répondre à cette question simple.
+      const ansText = document.createElement('span');
+      ansText.textContent = offlineAnswer;
+      const tag = document.createElement('div');
+      tag.className = 'offline-tag';
+      tag.textContent = '🔌 Réponse hors-ligne — le serveur du modèle semble injoignable';
+      bub.appendChild(ansText);
+      bub.appendChild(tag);
+    } else {
+      const errText = document.createElement('span');
+      errText.textContent = "Ce n'est pas votre faute c'est la mienne !\n Une erreur inattendue s'est produite 😓";
+      const retryBtn = document.createElement('button');
+      retryBtn.className = 'retry-btn';
+      retryBtn.type = 'button';
+      retryBtn.textContent = 'Réessayer';
+      retryBtn.onclick = () => {
+        bub.closest('.msg-row').remove();
+        if (lastFailedMessage) sendMessage(lastFailedMessage.text, lastFailedMessage.images);
+      };
+      bub.appendChild(errText);
+      bub.appendChild(document.createElement('br'));
+      bub.appendChild(retryBtn);
+    }
   }
   activeReader = null;
   streaming = false;
@@ -841,6 +1207,34 @@ function renderMath(el) {
       });
     } catch (e) {}
   }
+  addCopyButtons(el);
+}
+
+const ICON_COPY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>';
+const ICON_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+
+// Ajoute un bouton "Copier" en haut à droite de chaque bloc <pre> non déjà équipé.
+function addCopyButtons(el) {
+  const blocks = el.querySelectorAll('pre');
+  blocks.forEach((pre) => {
+    if (pre.querySelector('.code-copy-btn')) return;
+    pre.style.position = 'relative';
+    const btn = document.createElement('button');
+    btn.className = 'code-copy-btn';
+    btn.type = 'button';
+    btn.innerHTML = ICON_COPY;
+    btn.setAttribute('aria-label', 'Copier le code');
+    btn.onclick = () => {
+      const code = pre.querySelector('code');
+      const text = code ? code.textContent : pre.textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        btn.innerHTML = ICON_CHECK;
+        btn.classList.add('copied');
+        setTimeout(() => { btn.innerHTML = ICON_COPY; btn.classList.remove('copied'); }, 1500);
+      }).catch(() => {});
+    };
+    pre.appendChild(btn);
+  });
 }
 
 toggleSend();
@@ -859,6 +1253,11 @@ toggleSend();
     }
   } catch (e) {}
 })();
+
+// Déclenché en tout dernier : tout le script (OWL_SVG, fonctions, etc.) est
+// garanti d'être initialisé à ce stade, ce qui évite de casser le reste des
+// écouteurs d'événements si on demande le prénom ou qu'on rafraîchit l'accueil.
+if (!userName) { openNameOverlay(); } else { refreshWelcomeIfShown(); }
 </script>
 </body>
-</html>"""
+</html>
