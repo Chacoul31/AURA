@@ -604,6 +604,7 @@ const scrollBottomBtnEl = document.getElementById('scrollBottomBtn');
 let thinking = false, streaming = false, stopRequested = false;
 let currentConversationId = null;
 let activeReader = null;
+let activeAbortController = null;
 let attachedImages = []; // data-URLs en attente d'envoi
 let lastFailedMessage = null;
 
@@ -626,7 +627,7 @@ const GREETINGS_WITH_NAME = [
 ];
 const GREETINGS_NO_NAME = [
   'Comment puis-je vous aider ? 😊', 'Je vous écoute !', 'Sur quoi travaille-t-on ?',
-  'On y va 🤗 !', 'Dites-moi tout.', 'Prêt(e) quand vous l\'êtes.'
+  'On y va ! 🤗', 'Dites-moi tout.', 'Prêt(e) quand vous l\'êtes.'
 ];
 function buildGreeting() {
   return userName ? pick(GREETINGS_WITH_NAME).replace('{name}', userName) : pick(GREETINGS_NO_NAME);
@@ -777,12 +778,12 @@ function setSendMode(mode) {
   if (mode === 'stop') {
     btn.classList.add('stop-mode', 'active');
     btn.innerHTML = ICON_STOP;
-    btn.onclick = stopGeneration;
+    btn.onclick = () => stopGeneration();
     btn.setAttribute('aria-label', 'Arrêter la génération');
   } else {
     btn.classList.remove('stop-mode');
     btn.innerHTML = ICON_SEND;
-    btn.onclick = sendMessage;
+    btn.onclick = () => sendMessage();
     btn.setAttribute('aria-label', 'Envoyer le message');
     toggleSend();
   }
@@ -791,6 +792,7 @@ async function stopGeneration() {
   stopRequested = true;
   try { await fetch(API_BASE + '/stop', { method: 'POST' }); } catch (e) {}
   if (activeReader) { try { await activeReader.cancel(); } catch (e) {} }
+  if (activeAbortController) { try { activeAbortController.abort(); } catch (e) {} }
 }
 
 // ── Menu / historique ──
@@ -882,7 +884,7 @@ function addUserBubble(text, images) {
   const row = document.createElement('div');
   row.className = 'msg-row user';
   const av = document.createElement('div');
-  av.className = 'avatar user'; av.textContent = 'S';
+  av.className = 'avatar user'; av.textContent = '';
   const bub = document.createElement('div');
   bub.className = 'bubble user';
   let html = '';
@@ -956,6 +958,7 @@ function hideTyping() {
   const t = document.getElementById('typing-row');
   if (t) t.remove();
 }
+
 
 // ── Réponses locales de secours ──
 // Quand le serveur (le modèle local) est injoignable, Aura essaie quand même
@@ -1450,11 +1453,18 @@ async function sendMessage(retryText, retryImages) {
     });
   }
 
+  activeAbortController = new AbortController();
+  const streamTimeoutId = setTimeout(() => {
+    stopRequested = true;
+    activeAbortController.abort();
+  }, 120000); // 2 min : filet de sécurité si le flux ne se termine/n'échoue jamais
+
   try {
     const res = await fetch(API_BASE + '/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: text, think: thinking, conversation_id: currentConversationId, images: imagesToSend, user_name: userName || undefined })
+      body: JSON.stringify({ message: text, think: thinking, conversation_id: currentConversationId, images: imagesToSend, user_name: userName || undefined }),
+      signal: activeAbortController.signal
     });
 
     if (!res.ok || !res.body) {
@@ -1541,6 +1551,14 @@ async function sendMessage(retryText, retryImages) {
     scrollDown();
   } catch (e) {
     hideTyping();
+    if (e && e.name === 'AbortError' && stopRequested) {
+      // Arrêt volontaire (bouton stop) ou timeout de sécurité : pas d'écran
+      // d'erreur ni de bouton Réessayer. Le `finally` ci-dessous remet le
+      // bouton en mode envoyer.
+      const { bub } = startBotMessage();
+      bub.innerHTML = renderMarkdown('*(génération arrêtée)*');
+      return;
+    }
     const offlineAnswer = offlineRespond(text);
     const { bub } = startBotMessage();
     bub.innerHTML = '';
@@ -1568,10 +1586,13 @@ async function sendMessage(retryText, retryImages) {
       bub.appendChild(document.createElement('br'));
       bub.appendChild(retryBtn);
     }
+  } finally {
+    clearTimeout(streamTimeoutId);
+    activeReader = null;
+    activeAbortController = null;
+    streaming = false;
+    setSendMode('send');
   }
-  activeReader = null;
-  streaming = false;
-  setSendMode('send');
 }
 
 if (window.marked) {
