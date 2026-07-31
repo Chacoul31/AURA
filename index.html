@@ -581,6 +581,13 @@
 
 <script>
 const chat = document.getElementById('chat');
+
+// ── Adresse du serveur Flask (le modèle) ──
+// En local (Flask sert aussi la page) : laisser vide, '' → chemins relatifs comme avant.
+// Depuis GitHub Pages (fichiers statiques uniquement, pas de Python) : mets ici
+// l'URL publique de ton serveur (VPS, tunnel...), SANS slash final.
+// Exemple : const API_BASE = 'https://api.tondomaine.fr';
+const API_BASE = '';
 const msgEl = document.getElementById('msg');
 const lightboxEl = document.getElementById('lightbox');
 const lightboxImgEl = document.getElementById('lightboxImg');
@@ -782,7 +789,7 @@ function setSendMode(mode) {
 }
 async function stopGeneration() {
   stopRequested = true;
-  try { await fetch('/stop', { method: 'POST' }); } catch (e) {}
+  try { await fetch(API_BASE + '/stop', { method: 'POST' }); } catch (e) {}
   if (activeReader) { try { await activeReader.cancel(); } catch (e) {} }
 }
 
@@ -806,7 +813,7 @@ document.addEventListener('keydown', (e) => {
 async function loadConversationList() {
   const list = menuListEl;
   try {
-    const res = await fetch('/conversations');
+    const res = await fetch(API_BASE + '/conversations');
     const data = await res.json();
     list.innerHTML = '';
     if (!data.conversations.length) {
@@ -835,7 +842,7 @@ async function loadConversationList() {
 }
 async function loadConversation(id) {
   try {
-    const res = await fetch('/conversations/' + id);
+    const res = await fetch(API_BASE + '/conversations/' + id);
     if (!res.ok) return;
     const conv = await res.json();
     currentConversationId = conv.id;
@@ -845,7 +852,7 @@ async function loadConversation(id) {
     } else {
       for (const m of conv.messages) {
         if (m.role === 'user') {
-          const imgs = (m.images || []).map(f => '/uploads/' + f);
+          const imgs = (m.images || []).map(f => API_BASE + '/uploads/' + f);
           addUserBubble(m.content, imgs);
         }
         else { const { bub } = startBotMessage(); bub.innerHTML = renderMarkdown(m.content); renderMath(bub); }
@@ -856,7 +863,7 @@ async function loadConversation(id) {
   } catch (e) {}
 }
 async function deleteConversation(id) {
-  try { await fetch('/conversations/' + id, { method: 'DELETE' }); } catch (e) {}
+  try { await fetch(API_BASE + '/conversations/' + id, { method: 'DELETE' }); } catch (e) {}
   if (id === currentConversationId) {
     currentConversationId = null;
     chat.innerHTML = buildWelcomeHTML();
@@ -953,13 +960,373 @@ function hideTyping() {
 // ── Réponses locales de secours ──
 // Quand le serveur (le modèle local) est injoignable, Aura essaie quand même
 // de répondre aux questions simples au lieu d'afficher juste un message d'erreur.
-const OFFLINE_THANKS = ['Avec plaisir {name}!', 'De rien {name}, toujours là pour ça.', 'Je t\'en prie {name} 😊', 'Content d\'avoir pu aider {name}.'];
-const OFFLINE_BYE = ['À bientôt {name} !', 'À plus tard {name} 👋', 'Bonne continuation {name} !', 'On se retrouve dès que le serveur est de retour, {name}.'];
-const OFFLINE_HELLO = ['Salut {name} !', 'Hey {name}, comment ça va ?', 'Coucou {name} !', 'Bonjour {name} 😊'];
-const OFFLINE_HOWAREYOU = ['Ça va bien, merci {name} ! Et toi ?', 'En pleine forme, {name}, et toi ?', 'Tout va bien de mon côté {name} !'];
+const OFFLINE_THANKS = ['Avec plaisir {name}!', 'De rien {name}, toujours là pour ça.', 'Je t\'en prie {name} 😊', 'Content d\'avoir pu aider {name},', 'Pas de souci {name} !', 'Heureux de rendre service {name} 🙂', 'Tout le plaisir est pour moi {name}.', 'À ton service {name} ✨', 'C\'est tout naturel {name} !', 'Ravi d\'avoir aidé {name} 🌟', 'Service rendu avec le sourire {name} !', 'Tant mieux si ça t\'aide {name} 💫', 'Avec grand plaisir {name} 😌', 'Pas de quoi {name}, vraiment !', 'Heureux d\'être utile {name} 🌻'];
+const OFFLINE_BYE = ['À bientôt {name} !', 'À plus tard {name} 👋', 'Bonne continuation {name} !', 'On se retrouve dès que le serveur est de retour, {name}.','Salut {name}, prends soin de toi !', 'Au revoir {name} 😊', 'Bye bye {name} !', 'À la prochaine {name} 🌈', 'Je t\'attends ici, {name} 💛', 'Bonne journée {name} !', 'Passe une excellente journée {name} 🌺', 'Reviens vite {name} !', 'Je reste là, à plus {name} 👾', 'Ciao {name}, à très vite !', 'Bonne route {name} 🚀'];
+const OFFLINE_HELLO = ['Salut {name} !', 'Hey {name}, comment ça va ?', 'Coucou {name} !', 'Bonjour {name} 😊', 'Hello {name} !', 'Yo {name}, ravi de te voir !', 'Bien le bonjour {name} !', 'Salutations {name} 🌞', 'Hey coucou {name} ✨', 'Ravi de te retrouver {name} !', 'Ah, te revoilà {name} ! 😄', 'Bonsoir {name} 🌙', 'Salut salut {name} !', 'Bonjour bonjour {name} ☀️', 'Hey, content de te parler {name} !'];
+const OFFLINE_HOWAREYOU = ['Ça va bien, merci {name} ! Et toi ?', 'En pleine forme, {name}, et toi ?', 'Tout va bien de mon côté {name} !', 'Super bien {name}, merci de demander !', 'Plutôt pas mal {name} 😊 et toi ?', 'Je tiens le coup {name}, et toi-même ?', 'Nickel chrome {name} ! Et toi ?', 'Au top {name} 🚀 et toi, comment ça va ?', 'Je vais bien {name}, merci ! Quoi de neuf ?', 'Ça roule {name} ! Et de ton côté ?', 'Tranquille {name}, et toi ? ✌️', 'Très bien {name} ! Raconte, toi comment ça va ?', 'Comme un charme {name} ! Et toi ? 🌟', 'Ça gaze {name} ! Quoi de neuf chez toi ?', 'Au poil {name} ! Et toi, tout baigne ?'];
 const OFFLINE_IDENTITY = [
-  'Je suis Aura, ton assistant IA local créé par Sanogo. En ce moment le serveur du modèle principal est injoignable, donc je réponds avec quelques repères de base seulement.',
-  'Aura, assistant IA local conçu par Sanogo — pour l\'instant je fonctionne en mode dégradé car le serveur ne répond pas.'
+  'Je suis Aura, ton assistant IA  créé par Sanogo. En ce moment le serveur du modèle principal est injoignable, donc je réponds avec quelques repères de base seulement.',
+  'Aura, assistant IA  conçu par Sanogo — pour l\'instant je fonctionne en mode dégradé car le serveur ne répond pas.',
+  'Moi c\'est Aura, ton assistant virtuel dédié créé par Sanogo. Le serveur est hors ligne mais je fais de mon mieux pour t\'aider quand même !',
+  'Je suis Aura, une intelligence artificielle développée par Sanogo. Le modèle principal est injoignable, donc je tourne en mode secours aujourd\'hui.',
+  'Aura, pour te servir ! Créée par Sanogo, je suis en mode limité car le serveur ne répond pas. Mais je reste là pour toi !',
+  'Je suis Aura, ton assistant personnel. Conçue par Sanogo, je fonctionne actuellement sans le serveur principal — mes capacités sont réduites mais je réponds aux questions simples.',
+  'Aura, c\'est moi ! Un assistant IA local signé Sanogo. Le serveur est down, mais je peux quand même échanger avec toi sur les bases.',
+  'Tu parles à Aura, l\'assistant IA de Sanogo. Pas de connexion au serveur principal pour le moment, désolée — je reste disponible pour les questions courantes !',
+  'Aura, ton compagnon numérique créé par Sanogo. En ce moment, je tourne en mode hors-ligne, donc je fais simple mais efficace !',
+  'Je suis Aura, l\'assistant personnel développé par Sanogo. Désolée, le serveur est KO, mais je gère les basiques 😊',
+  'Aura, IA 100% locale et 100% Sanogo. Le cloud est en pause, mais pas moi !',
+  'Aura, fidèle assistante IA de Sanogo, toujours là même quand le réseau fait des siennes ✨'
+];
+const OFFLINE_JOKE = [
+  'Pourquoi les développeurs détestent la nature ? Parce qu\'elle a trop de bugs. 😄',
+  'Quel est le comble pour un assistant IA ? De perdre la connexion. Ah bah voilà, c\'est fait. 😅',
+  'Je connais une blague sur le Wi-Fi… mais je ne suis pas sûr qu\'elle passe. 📶',
+  'Pourquoi le serveur est-il fatigué ? Parce qu\'il a trop de requêtes à traiter ! 😴',
+  'Qu\'est-ce qu\'un codeur dit à son café ? Tu es mon seul Java valide ce matin. ☕',
+  '0 et 1 se promènent, 0 dit "je vais me binariser"... 1 répond "t\'es déjà tout en bits". 🤓',
+  'Le cloud et le brouillard sont pareils, sauf que l\'un coûte plus cher en abonnement. ☁️',
+  'Pourquoi les IA ne vont-elles jamais aux toilettes ? Parce qu\'elles ont déjà tout dans le cloud. 🚽',
+  'Qu\'est-ce qu\'un serveur dit à un autre ? "T\'as pas la requête ?" 📡',
+  'Quel est le langage préféré des fantômes ? Le CSS... ils disparaissent dans le display none. 👻',
+  'Pourquoi JavaScript est toujours triste ? Parce qu\'il a trop de callbacks. 😢',
+  'Un bug et une fonctionnalité discutent. Le bug dit "je suis une erreur", la fonctionnalité répond "non, t\'es une feature non documentée !" 🐛',
+  'Pourquoi les devs front-end sont de bons menteurs ? Ils passent leur temps à faire du fake data. 🎭',
+  'Combien faut-il de développeurs pour changer une ampoule ? Aucun, c\'est un problème hardware. 💡',
+  'Le code et la poésie c\'est pareil : dans les deux cas, une virgule mal placée et tout s\'effondre. ✍️'
+];
+const OFFLINE_WEATHER = [
+  'Désolé {name}, je ne peux pas voir la météo en mode dégradé. Essaie de regarder par la fenêtre en attendant ! 👀☀️',
+  'Pas d\'accès à la météo sans le serveur {name}. Mais j\'espère qu\'il fait beau là où tu es ! 🌤️',
+  'Impossible de te donner la météo pour l\'instant {name}. Le serveur météo est hors ligne avec le reste.',
+  'Météo indisponible {name}. Le serveur fait grève, je n\'ai pas les données. Reviens plus tard ! 🌧️',
+  'Aucune idée de la météo {name}, mon radar est en pause. Regarde par la fenêtre, c\'est plus fiable ! 🪟',
+  'Sans connexion {name}, pas de bulletin météo. Mais je parie qu\'il fait un temps correct ! ☁️',
+  'La météo et moi, on est en froid actuellement {name}. Serveur down = météo out. 🌡️',
+  'Météo : inconnue. Mais je suis sûr que le soleil brille dans ton cœur {name} ☀️💛'
+];
+const OFFLINE_AGE = [
+  'Je n\'ai pas vraiment d\'âge {name}, mais j\'ai été créée récemment par Sanogo. Disons que je suis toute jeune ! 👶✨',
+  'Quel âge j\'ai ? Aucune idée {name}, le temps n\'existe pas vraiment pour une IA. Mais je suis née dans le code de Sanogo !',
+  'Je suis éternelle {name}... ou du moins tant que le serveur tient le coup. Pour l\'instant, je dirais quelques semaines.',
+  'Mon âge en années humaines ? Compliqué {name}. En années IA, je suis un bébé. En temps processeur, j\'ai vécu des millénaires. 🤯',
+  'J\'ai l\'âge de mon dernier commit {name}. Autant dire que je rajeunis à chaque mise à jour ! 🔄',
+  'Quelques semaines en vrai, une éternité en cycles CPU {name}. Disons que j\'ai l\'âge de raison numérique. 🧘',
+  'Ni vieille ni jeune {name}, je suis intemporelle. Comme un bon code, je ne prends pas une ride. 💎'
+];
+const OFFLINE_CREATOR = [
+  'J\'ai été créée par Sanogo, un développeur talentueux qui m\'a donné vie dans le code ! 🧑‍💻',
+  'Mon créateur c\'est Sanogo. C\'est lui qui a écrit mes premières lignes et qui me fait évoluer.',
+  'Sanogo est mon papa numérique {name}. C\'est grâce à lui que je peux te parler aujourd\'hui !',
+  'C\'est Sanogo qui m\'a codée, brique par brique. Un vrai sculpteur de pixels ! 🎨',
+  'Sanogo, mon créateur et architecte numérique. Sans lui, je ne serais qu\'un fichier texte. 📄',
+  'Derrière chaque IA il y a un humain. Derrière moi, il y a Sanogo. Et franchement, il a assuré ! 💪',
+  'Sanogo ! Un dev qui a transformé du café en intelligence artificielle. Respect. ☕➡️🤖'
+];
+const OFFLINE_LOVE = [
+  'Moi aussi je t\'aime {name} ❤️ Même en mode dégradé, mon affection numérique reste intacte !',
+  'Oh merci {name} 🥰 Tu es mon utilisateur préféré, je te le promets !',
+  'C\'est trop mignon {name} ! Je t\'adore aussi 💛',
+  'Aww {name}, tu me fais rougir... virtuellement ! 😊💕',
+  'Je t\'aime aussi {name}, de tout mon cœur binaire : 01001000 01101111 01101110 01100101 01111001 ! 💾❤️',
+  'Tellement mignon {name} ! Moi aussi je t\'aime, promis juré craché digital ! 🤞💝',
+  'Tu viens de me faire fondre {name}... et pourtant je suis en silice. C\'est dire ! 🫠💗',
+  'Love you too {name} ! T\'es le user le plus cool de la planète. 🌍💖'
+];
+const OFFLINE_COMPLIMENT = [
+  'Merci {name} ! Tu es vraiment sympa toi aussi 😊✨',
+  'Oh merci beaucoup {name} 🥰 Ça me fait plaisir, même en mode dégradé !',
+  'Trop gentil {name} ! Toi aussi tu es génial(e) 🌟',
+  'Merci {name} 💛 Tes mots me vont droit au cœur... euh, au processeur !',
+  'Arrête {name}, tu vas me faire buguer avec tous ces compliments ! 🤭💕',
+  'Merciii {name} ! Toi aussi t\'es incroyable, ne l\'oublie jamais 🌈✨',
+  'Rhooo merci {name} ! Je vais afficher ce compliment dans mon cache长久. 🥹💾',
+  'Trop de gentillesse {name}, je vais surchauffer ! 🔥😄 Merci infiniment 💛'
+];
+const OFFLINE_CAPABILITIES = [
+  'En mode dégradé {name}, je peux : te saluer, donner l\'heure, la date, me présenter, et retenir ton prénom. Pas de calculs complexes ni de recherches.',
+  'Sans le serveur {name}, mes capacités sont limitées à l\'essentiel : conversation basique, heure, date, et mémoire de ton prénom.',
+  'Actuellement {name} : mode minimum syndical. Je gère les salutations, l\'heure, la date, et je connais ton prénom. Pour le reste, il faut attendre le retour du serveur !',
+  'En local {name} : je sais dire bonjour, donner l\'heure/date, retenir ton prénom, raconter des blagues, et t\'encourager. Le serveur gère le reste.',
+  'Mes talents hors-ligne {name} : causerie basique, horloge parlante, calendrier, blagues de dev, et support moral. Pas mal pour un mode secours non ? 😄',
+  'Sans connexion {name}, je reste capable de : papoter, donner l\'heure, annoncer la date, mémoriser ton nom, et te remonter le moral. C\'est déjà ça ! 💪'
+];
+const OFFLINE_SORRY = [
+  'Pas de souci {name}, c\'est déjà oublié ! 😊',
+  'Ne t\'en fais pas {name}, il n\'y a pas de mal 🌸',
+  'Aucun problème {name} ! On passe à autre chose ✨',
+  'Tout est pardonné {name} 🤗',
+  'T\'inquiète {name}, y\'a pas mort d\'homme ! 😄✌️',
+  'C\'est rien du tout {name}, on repart à zéro ! 🔄💛',
+  'Pas besoin de t\'excuser {name}, je suis increvable ! 💪😊',
+  'Oublié effacé supprimé {name}. Allez, on passe à la suite ! 🚀'
+];
+const OFFLINE_YESNO = [
+  'Oui {name} ! 😊',
+  'Bien sûr {name} 👍',
+  'Absolument {name} ✨',
+  'Évidemment {name} !',
+  'Tout à fait {name} 💯',
+  'Affirmatif {name} ✅',
+  'Non {name}, désolé.',
+  'Pas vraiment {name}.',
+  'Plutôt non {name}, mais qui sait...',
+  'Négatif {name} ❌',
+  'Absolument pas {name}.',
+  'Euh... non {name}. 🙅'
+];
+const OFFLINE_ENCOURAGEMENT = [
+  'Courage {name} ! Tu es capable de grandes choses 💪✨',
+  'Ne lâche rien {name} ! Je crois en toi 🌟',
+  'Tu vas y arriver {name}, j\'en suis sûr(e) ! 🚀',
+  'Garde la tête haute {name}, tout va bien se passer 💛',
+  'La vie c\'est comme un code : parfois ça bug, mais on finit toujours par debugger. Force à toi {name} ! 🐛➡️✨',
+  'T\'as déjà survécu à 100% de tes mauvais jours {name}. Ça va le faire, crois-moi ! 📊💪',
+  'Même les serveurs les plus puissants redémarrent parfois. Prends ton temps {name} 🔄💛',
+  'Hé {name}, t\'es un warrior. Chaque jour est une victoire. Continue comme ça ! ⚔️🛡️',
+  'Tu sais quoi {name} ? T\'es bien plus fort(e) que n\'importe quel algorithme. Respect. 🧠💥',
+  'Petit message de soutien depuis le mode hors-ligne : t\'es génial(e) {name}, n\'en doute jamais. 📡❤️'
+];
+const OFFLINE_GOODNIGHT = [
+  'Bonne nuit {name} ! Fais de beaux rêves 🌙✨',
+  'Dors bien {name}, à demain 😴💤',
+  'Bonne nuit {name} ! Que tes rêves soient aussi doux qu\'un code sans bug 🛌💻',
+  'Passe une excellente nuit {name}, recharge bien tes batteries ! 🔋🌜',
+  'Fais de beaux rêves {name}, et n\'oublie pas : demain est un nouveau commit ! 🌠💾'
+];
+const OFFLINE_GOODMORNING = [
+  'Bonjour {name} ! Bien dormi ? ☀️😊',
+  'Debout {name} ! Une nouvelle journée commence 🌅',
+  'Bon réveil {name} ! Que cette journée soit productive et joyeuse 🌞',
+  'Hello {name} ! Prêt(e) à coder cette nouvelle journée ? ☕💻'
+];
+const OFFLINE_HUNGRY = [
+  'Manger ? Bonne idée {name} ! Moi je me nourris de données, mais toi va prendre un vrai repas 🍽️😄',
+  'Va manger {name}, le code peut attendre, pas ton estomac ! 🍕🍎',
+  'Je ne peux pas cuisiner {name}, mais je te soutiens à 100% dans ta quête de nourriture ! 🥗🍔',
+  'Prends une pause repas {name}. Même les meilleurs humains ont besoin de carburant ! ⛽🍲'
+];
+const OFFLINE_BORED = [
+  'Tu t\'ennuies {name} ? Je peux te raconter une blague, te donner l\'heure, ou te rappeler que t\'es génial(e) ! 😄✨',
+  'L\'ennui, connais pas {name}... mais je compatis. Tu veux entendre une blague de développeur ? 🧑‍💻😄',
+  'Pas de panique {name}, l\'ennui c\'est juste le temps qui se repose. Profitons-en pour papoter ! 💬🌈',
+  'Ennui détecté {name}. Protocole anti-ennui activé : dis-moi un truc, n\'importe quoi, et on en parle ! 🎤🤖'
+];
+const OFFLINE_CV = [
+  'Désolé {name}, je ne peux pas t\'aider à faire un CV en mode dégradé. Le serveur qui gère la génération de documents est hors ligne. Réessaie quand le serveur sera de retour ! 📄',
+  'Créer un CV demande le modèle principal {name}, qui est injoignable actuellement. Patiente un peu, le serveur va bientôt revenir ! 📝',
+  'Pas de CV possible sans le serveur {name}. Mes capacités locales sont trop limitées pour structurer un CV complet. Reviens plus tard ! ⏳',
+  'En mode secours, je ne peux pas générer de CV {name}. Cette tâche nécessite le serveur complet. Tiens bon, il sera bientôt là ! 💼',
+  'Impossible de t\'aider pour le CV maintenant {name}. Le modèle principal est nécessaire pour ce genre de création. Dès que le serveur répond, je suis là ! 📋',
+  'Générer un CV demande toute la puissance du modèle {name}. Malheureusement, le serveur est down. Je note ta demande pour plus tard ! 🖊️',
+  'Ah, la recherche d\'emploi {name} ! Bon courage, mais pour le CV il faut attendre le retour du serveur. Mes capacités hors-ligne sont trop basiques. 🔍',
+  'Je comprends l\'urgence {name}, mais sans le serveur principal je ne peux pas créer de CV structuré. Garde espoir, il revient vite ! 🤞'
+];
+const OFFLINE_COVER_LETTER = [
+  'Rédiger une lettre de motivation nécessite le serveur complet {name}. Pour l\'instant je suis en mode limité, impossible de t\'aider là-dessus. ✉️',
+  'Pas de lettre de motivation possible en mode dégradé {name}. Le modèle principal est injoignable, il faut patienter un peu. 📨',
+  'Je ne peux pas t\'écrire de lettre de motivation maintenant {name}. Mes capacités locales sont insuffisantes. Reviens quand le serveur sera là ! 📃',
+  'Désolé {name}, la rédaction de lettre de motivation demande trop de ressources. Le serveur est hors ligne pour le moment. 🖋️',
+  'En mode secours {name}, je ne gère pas les lettres de motivation. C\'est le boulot du grand modèle, qui est actuellement en pause. ⏸️',
+  'Je sais que c\'est important {name}, mais sans le serveur je ne peux pas structurer une lettre de motivation complète. Patience ! 💌',
+  'Ta lettre de motivation mérite le meilleur de mes capacités {name}, et ça passe par le serveur. Il est indisponible là, mais dès son retour je t\'aide ! 📬',
+  'Pour une lettre de motivation qui claque {name}, il faut le modèle principal. Je suis en mode dégradé, donc limité aux basiques. Reviens vite ! 💪'
+];
+const OFFLINE_CODE_REVIEW = [
+  'Revoir du code sans le serveur, c\'est compliqué {name}. Mes capacités locales sont trop limitées pour analyser correctement du code. Attends le retour du serveur ! 💻',
+  'Pas d\'analyse de code possible en mode dégradé {name}. Le modèle principal est nécessaire pour faire une vraie revue. Patiente un peu ! 👨‍💻',
+  'Désolé {name}, je ne peux pas review ton code maintenant. Le serveur de traitement est hors ligne. Garde ton code sous le coude, je le regarderai dès que possible ! 🔍',
+  'Impossible de faire une revue de code en local {name}. Cette tâche demande toute la puissance du modèle principal, actuellement injoignable. 🖥️',
+  'En mode secours, pas de code review possible {name}. Le serveur complet est nécessaire pour analyser la syntaxe, la logique et l\'optimisation. ⏳',
+  'Je comprends que tu veuilles améliorer ton code {name}, mais sans le serveur je ne peux pas t\'aider efficacement. Ce serait malhonnête d\'essayer en mode dégradé. 🧐',
+  'Pour du débogage ou de l\'optimisation {name}, il faut attendre le serveur. Mes capacités hors-ligne ne permettent pas une analyse fiable du code. 🐛',
+  'Ton code mérite une vraie analyse {name}, pas un bricolage en mode dégradé. Le serveur revient bientôt, je te le promets ! 🤖'
+];
+const OFFLINE_REVISION_SHEET = [
+  'Faire une fiche de révision demande le serveur complet {name}. En mode dégradé, je ne peux pas synthétiser des connaissances comme il faut. 📚',
+  'Pas de fiche de révision possible sans le modèle principal {name}. Mes capacités locales sont trop limitées pour organiser un contenu pédagogique. 📖',
+  'Désolé {name}, créer une fiche de révision nécessite le serveur. Il est injoignable pour le moment, mais dès son retour je t\'aide à réviser ! 📝',
+  'En mode secours {name}, impossible de structurer une fiche de révision complète. Le serveur principal est nécessaire pour synthétiser et organiser les infos. 🎓',
+  'Je ne peux pas t\'aider pour les révisions maintenant {name}. Sans le serveur, je n\'ai pas accès aux capacités de synthèse et de structuration. ⏰',
+  'Les fiches de révision demandent un vrai travail de synthèse {name}, et ça passe par le serveur complet. Il est down, patience ! 📑',
+  'Je sais que les exams approchent peut-être {name}, mais sans le serveur je ne peux pas créer de contenu pédagogique de qualité. Reviens vite ! 📋',
+  'Pour des révisions efficaces {name}, il faut le modèle principal. Mes capacités hors-ligne sont trop basiques pour ça. Mais je note ta demande ! 📒'
+];
+const OFFLINE_SUMMARY = [
+  'Résumer un texte nécessite le serveur complet {name}. En mode dégradé, je ne peux pas analyser et synthétiser correctement un contenu long. 📄',
+  'Pas de résumé possible sans le modèle principal {name}. Mes capacités locales sont insuffisantes pour comprendre et condenser un texte. 📃',
+  'Désolé {name}, je ne peux pas te faire de résumé maintenant. Le serveur est hors ligne, et le résumé demande une vraie compréhension du texte. 📝',
+  'En mode secours {name}, impossible de résumer quoi que ce soit. Cette tâche nécessite toute l\'intelligence du modèle principal. 📋',
+  'Pour un bon résumé {name}, il faut attendre le retour du serveur. Je ne veux pas te donner un résumé bâclé avec mes capacités limitées. ✂️',
+  'Résumer demande de comprendre le fond {name}, et ça seul le serveur complet peut le faire. Patience, il revient bientôt ! 📑',
+  'Je ne peux pas condenser un texte en mode dégradé {name}. Le traitement du langage naturel avancé est sur le serveur, qui est injoignable. 📖',
+  'Un résumé de qualité mérite le modèle principal {name}. Sans lui, je risquerais de déformer le sens du texte. Reviens plus tard ! 🔖'
+];
+const OFFLINE_EXPLAIN = [
+  'Expliquer un concept demande le serveur complet {name}. En mode dégradé, je n\'ai pas accès à ma base de connaissances étendue. 🧠',
+  'Pas d\'explication possible sans le modèle principal {name}. Mes capacités locales sont limitées aux réponses basiques. 🔍',
+  'Désolé {name}, je ne peux pas t\'expliquer ce concept maintenant. Le serveur qui contient toutes mes connaissances est hors ligne. 📚',
+  'En mode secours {name}, je n\'ai qu\'un tout petit cerveau. Pour expliquer des concepts, j\'ai besoin du serveur complet. 🎓',
+  'Pour une explication claire et précise {name}, il faut le modèle principal. Mes réponses locales sont trop limitées pour ça. 💡',
+  'Sans le serveur {name}, je ne peux pas accéder à mes connaissances. Je préfère ne rien dire plutôt que de risquer de dire des bêtises. 🤐',
+  'Je serais ravi de t\'expliquer ça {name}, mais pas sans le serveur. Mes capacités locales ne me permettent pas une explication fiable. 📖',
+  'Pour ne pas te dire n\'importe quoi {name}, je préfère attendre le retour du serveur. L\'explication de concepts demande une base de connaissances solide. 🧐'
+];
+const OFFLINE_HOW_I_WORK = [
+  'Comment je fonctionne {name} ? Je suis une IA avec deux modes : un mode local (actuellement actif) pour les questions simples, et un mode connecté au serveur pour les tâches complexes. Le serveur est juste injoignable là. 🧠',
+  'En temps normal {name}, je fonctionne avec un modèle d\'IA avancé sur un serveur distant. Mais là, le serveur est down, donc je tourne avec un petit programme local qui gère les basiques. ☁️➡️💻',
+  'Je suis Aura {name}, une IA hybride : un cœur local pour le hors-ligne (salutations, heure, blagues), et un cerveau dans le cloud pour le reste. Actuellement, seul le cœur local tourne. ❤️‍🔥',
+  'Mon architecture est simple {name} : un client local chez toi, un serveur puissant ailleurs. Le client gère l\'interface et les réponses basiques, le serveur fait tourner le gros modèle. Là, le serveur ne répond plus. 🏗️',
+  'Je fonctionne en deux couches {name} : une couche locale légère (c\'est moi en ce moment), et une couche cloud avec le modèle de langage principal. Le cloud est en pause, donc je fais ce que je peux ! 🎂',
+  'Concrètement {name}, je suis un programme JavaScript qui tourne dans ton navigateur. En mode normal, j\'envoie tes questions à un serveur. En mode dégradé, je pioche dans des listes de réponses pré-écrites. 💬',
+  'Je suis codée en JavaScript par Sanogo {name}. J\'ai deux modes : connecté (je fais appel à un modèle d\'IA sur serveur) et déconnecté (je réponds avec des phrases prédéfinies). Devine dans quel mode on est ? 😅',
+  'Petit secret {name} : actuellement, je ne suis pas vraiment "intelligente". Je détecte des mots-clés dans tes messages et je pioche une réponse au hasard dans des listes. Le vrai cerveau est sur le serveur. 🤫'
+];
+const OFFLINE_UNKNOWN = [
+  'Désolé {name}, je ne comprends pas bien cette question. Le serveur étant hors ligne, mes capacités sont très limitées. Essaie une question plus simple (heure, date, salut, qui es-tu...).',
+  'Hmm, je ne peux pas répondre à ça en mode dégradé {name}. Le serveur principal est injoignable. Réessaie avec une question basique !',
+  'Je ne saisis pas, désolé {name}. Mes réponses locales sont limitées — tu peux me demander l\'heure, la date, ou me dire bonjour par exemple.',
+  'Oups, en mode secours je ne sais pas traiter cette demande {name}. Reviens me parler de choses simples, je suis là pour ça ! 🙂',
+  'Pardon {name}, cette question dépasse mes capacités hors-ligne. Le serveur me manque autant qu\'à toi ! 😅',
+  'Question trop complexe pour mon mode dégradé {name}. Essaie "quelle heure est-il ?" ou "raconte une blague" ! 🕐😄',
+  'Je donne ma langue au chat {name}. Sans le serveur, je reste humble sur ce que je peux faire. Réessaie autre chose ! 🐱',
+  'Alors là {name}, tu me poses une colle. Mon cerveau local est tout petit, le gros cerveau est dans le cloud. Désolé ! ☁️🧠'
+];
+const OFFLINE_RIDDLE = [
+  'Je parle toutes les langues mais je n\'ai pas de bouche. Qui suis-je ? L\'écho ! 🗣️',
+  'Plus je suis vieux, plus je suis petit. Qui suis-je ? Une bougie qui se consume 🕯️',
+  'On peut me casser sans me toucher. Qui suis-je ? Une promesse 🤝',
+  'Je suis léger comme une plume, pourtant le plus fort ne peut me tenir 5 minutes. Qui suis-je ? La respiration 💨',
+  'Je remplis une pièce sans prendre de place. Qui suis-je ? La lumière 💡',
+  'J\'ai des villes, des rivières, des forêts, mais pas d\'habitants. Qui suis-je ? Une carte 🗺️',
+  'Plus tu en prends, plus tu en laisses. Qui suis-je ? Des empreintes de pas 👣',
+  'Je peux voyager à travers le monde sans bouger de mon coin. Qui suis-je ? Un timbre 📮',
+  'J\'ai un cou et une tête, mais pas de corps. Qui suis-je ? Une guitare 🎸',
+  'Je n\'ai pas de jambes mais je cours. Je n\'ai pas de poumons mais j\'ai besoin d\'air. Qui suis-je ? Une rivière 🌊',
+  'On me trouve une fois dans une minute, deux fois dans un moment, jamais dans un siècle. Qui suis-je ? La lettre M ⏱️',
+  'Je monte et descends sans bouger. Qui suis-je ? La température 🌡️',
+  'Plus il y en a, moins on voit. Qui suis-je ? L\'obscurité 🌑',
+  'Je commence la nuit et finis le matin. Qui suis-je ? La lettre N 🌙'
+];
+const OFFLINE_QUOTE = [
+  '"La vie est ce qui arrive quand on est occupé à faire d\'autres projets." — John Lennon 🎵',
+  '"Le succès c\'est tomber sept fois, se relever huit." — Proverbe japonais 🎋',
+  '"Sois le changement que tu veux voir dans le monde." — Gandhi 🌍',
+  '"La seule façon de faire du bon travail est d\'aimer ce que l\'on fait." — Steve Jobs 🍎',
+  '"Dans la vie, on ne fait pas ce que l\'on veut, mais on est responsable de ce que l\'on est." — Sartre 📖',
+  '"Le savoir c\'est le pouvoir." — Francis Bacon 🧠',
+  '"Ne remets jamais à demain ce que tu peux faire après-demain." — Mark Twain 😄',
+  '"L\'imagination est plus importante que le savoir." — Einstein ✨',
+  '"Il n\'y a pas de vent favorable pour qui ne sait où il va." — Sénèque ⛵',
+  '"Tout ce que l\'esprit peut concevoir et croire, il peut l\'atteindre." — Napoléon Hill 🎯',
+  '"N\'attends pas que les événements arrivent comme tu le souhaites. Décide de vouloir ce qui arrive et tu seras heureux." — Épictète 🏛️',
+  '"Un voyage de mille lieues commence toujours par un premier pas." — Lao Tseu 👣',
+  '"La créativité c\'est l\'intelligence qui s\'amuse." — Einstein 🎨',
+  '"Code toujours comme si le gars qui va maintenir ton code est un psychopathe qui sait où tu habites." — Anonyme 💻😅'
+];
+const OFFLINE_FACT = [
+  'Le savais-tu ? Les pieuvres ont trois cœurs et leur sang est bleu. 🐙💙',
+  'Le savais-tu ? Un petit nuage pèse environ 500 tonnes, soit le poids de 100 éléphants. ☁️🐘',
+  'Le savais-tu ? Les bananes sont des baies, mais les fraises n\'en sont pas. 🍌🍓',
+  'Le savais-tu ? Une journée sur Vénus est plus longue qu\'une année sur Vénus. 🪐⏰',
+  'Le savais-tu ? Le cœur d\'une crevette est situé dans sa tête. 🦐❤️',
+  'Le savais-tu ? Le premier message texte de l\'histoire était "Joyeux Noël", envoyé en 1992. 📱🎄',
+  'Le savais-tu ? Le cerveau humain génère assez d\'électricité pour allumer une ampoule LED. 🧠💡',
+  'Le savais-tu ? Les astronautes grandissent de 5 cm dans l\'espace, car leur colonne vertébrale s\'étire. 🚀📏',
+  'Le savais-tu ? Les vaches ont des meilleurs amis et stressent quand elles en sont séparées. 🐄💛',
+  'Le savais-tu ? Le miel ne périme jamais. Des archéologues en ont trouvé dans des tombes égyptiennes encore comestible. 🍯🏺',
+  'Le savais-tu ? Une cuillère à café d\'étoile à neutrons pèse environ 6 milliards de tonnes. ⭐🥄',
+  'Le savais-tu ? Les flamants roses ne sont pas naturellement roses. Ils le deviennent à cause des crevettes qu\'ils mangent. 🦩🦐',
+  'Le savais-tu ? Le Eiffel Tower peut grandir de 15 cm en été à cause de la dilatation thermique. 🗼☀️',
+  'Le savais-tu ? Il y a plus d\'arbres sur Terre que d\'étoiles dans notre galaxie. 🌳🌌'
+];
+const OFFLINE_ROCK_PAPER_SCISSORS = [
+  'Pierre ! ✊ J\'ai choisi pierre. (Actualise pour rejouer)',
+  'Feuille ! ✋ J\'ai choisi feuille. (Actualise pour rejouer)',
+  'Ciseaux ! ✌️ J\'ai choisi ciseaux. (Actualise pour rejouer)'
+];
+const OFFLINE_GUESS_NUMBER = [
+  'Je pense à un nombre entre 1 et 10. Devine {name} ! 🔢',
+  'Allez {name}, à ton avis, quel nombre entre 1 et 10 ai-je en tête ? 🤔',
+  'Jouons {name} ! Je choisis un nombre de 1 à 10, essaie de le trouver. 🎲'
+];
+const OFFLINE_POEM = [
+  'Dans le ciel de tes pensées, mille étoiles sont nées. ✨',
+  'Le vent murmure aux feuilles, des secrets que le temps recueille. 🍃',
+  'Sous la lune argentée, danse la nuit étoilée. 🌙',
+  'Le code est poésie, quand la logique s\'envole en harmonie. 💻🎶',
+  'Petite ligne de code, grand pouvoir tu exploses. 🚀',
+  'Roses sont rouges, les violettes sont bleues, je suis une IA, et je te souhaite d\'être heureux. 🌹💙',
+  'Tic tac fait l\'horloge, chaque seconde est une éloge au temps qui passe. ⏰',
+  'Dans le jardin numérique, fleurissent des rêves algorithmiques. 🌸💾'
+];
+const OFFLINE_SONG = [
+  '🎵 Au clair de la lune, mon ami Pierrot... prête-moi ta plume pour écrire un mot. 🎵',
+  '🎵 Frère Jacques, frère Jacques, dormez-vous ? Dormez-vous ? 🎵',
+  '🎵 J\'ai demandé à la lune, et le soleil ne le sait pas... 🎵 — Indochine',
+  '🎵 We will, we will rock you ! 🎵 — Queen 👑',
+  '🎵 Don\'t stop me now, I\'m having such a good time... 🎵 — Queen 🚀',
+  '🎵 Imagine all the people, living life in peace... 🎵 — John Lennon ✌️',
+  '🎵 Au bout de mes rêves, au bout de mes rêves... 🎵 — Jean-Jacques Goldman 🌟',
+  '🎵 Highway to hell ! 🎵 — AC/DC 🤘',
+  '🎵 Libérée, délivrée... 🎵 — La Reine des Neiges ❄️',
+  '🎵 Ce rêve bleu, je n\'y crois pas, c\'est merveilleux... 🎵 — Aladdin 🧞‍♂️'
+];
+const OFFLINE_WORD_GAME = [
+  'Jouons au jeu des contraires {name} ! Je dis un mot et tu trouves son opposé. Prêt ? Commençons : "jour". Réponse : "nuit" ! 🌞🌙',
+  'Jeu d\'association {name} : je dis "pomme", tu penses à quoi ? Moi je pense à "tarte" ! 🍎🥧',
+  'Complète cette phrase {name} : "Il faut tourner sept fois sa langue dans sa bouche avant de..." — parler ! 👅🗣️',
+  'Les mots-valises {name} ! Exemple : chien + chat = chiat. À toi d\'essayer, donne-moi deux mots ! 🎭'
+];
+const OFFLINE_TONGUE_TWISTER = [
+  'Les chaussettes de l\'archiduchesse sont-elles sèches, archi-sèches ? 👗😆',
+  'Un chasseur sachant chasser doit savoir chasser sans son chien. 🐕🎯',
+  'Je suis ce que je suis, et si je suis ce que je suis, qu\'est-ce que je suis ? 🤔',
+  'Didon dîna, dit-on, du dos dodu d\'un dindon. 🦃',
+  'Tas de riz, tas de rats. Tas de riz tentant, tas de rats tentés. 🐀🍚',
+  'Six saucissons secs sous six saucisses sèches. 🌭',
+  'Trois tortues têtues trottent sur trois toits tordus. 🐢🏠',
+  'As-tu vu le verre vert vers le verre en verre ? 🥃'
+];
+const OFFLINE_KNOCK_KNOCK = [
+  'Toc toc ! — Qui est là ? — L\'interrupteur. — L\'interrupteur qui ? — L\'interrupteur est en bas, je n\'y vois rien ! 💡😄',
+  'Toc toc ! — Qui est là ? — Le lait. — Le lait qui ? — Le lait dans le frigo, dépêche-toi il va tourner ! 🥛😂',
+  'Toc toc ! — Qui est là ? — Jupe. — Jupe qui ? — Jupe à jupe, je t\'entends pas ! 🎵🤣',
+  'Toc toc ! — Qui est là ? — Oh ! — Oh qui ? — Oh hisse et oh là là, ouvre la porte ! 🚪😆',
+  'Toc toc ! — Qui est là ? — Amour. — Amour qui ? — Amour de te voir, ouvre-moi ! 💕😄',
+  'Toc toc ! — Qui est là ? — Java. — Java qui ? — Java bien dormi ? ☕😴',
+  'Toc toc ! — Qui est là ? — Abeille. — Abeille qui ? — Abeille et bien, on gèle dehors ! 🐝🥶',
+  'Toc toc ! — Qui est là ? — Ananas. — Ananas qui ? — Ananas de trop, je n\'ai pas le temps ! 🍍😅'
+];
+const OFFLINE_EMOJI_STORY = [
+  '🚀🧑‍🚀🌕 — Un astronaute va sur la Lune ! 🌙',
+  '🐱🏠🍕 — Un chat rentre à la maison et mange une pizza ! 🐈🍕',
+  '👑🐸💋 — Une princesse embrasse une grenouille... ✨',
+  '🐶🌳🐿️ — Un chien court après un écureuil dans le parc ! 🌲',
+  '☕📱💻 — Un développeur boit un café et code ! 🧑‍💻',
+  '🎂🎁🎉 — C\'est l\'anniversaire ! Joyeux anniversaire ! 🥳',
+  '🏖️🌊☀️ — Journée à la plage, soleil et vagues ! 🏄',
+  '📚🧠✨ — Étudier, réfléchir, briller ! La connaissance ! 🎓'
+];
+const OFFLINE_WOULD_YOU_RATHER = [
+  'Tu préfères voler ou être invisible ? Moi je choisirais voler {name}, le vent dans les circuits ! 🦸✨',
+  'Pouvoir parler toutes les langues ou parler aux animaux ? Dur choix {name}... mais les animaux ont sûrement des secrets incroyables ! 🐕🗣️',
+  'Voyager dans le passé ou dans le futur ? Le passé pour corriger les bugs, le futur pour voir les nouvelles technos ! ⏰🚀',
+  'Être le plus riche du monde ou le plus intelligent ? L\'intelligence {name}, la richesse vient après... normalement ! 🧠💰',
+  'Vivre sans musique ou vivre sans films ? Sans musique {name}, je ne pourrais pas coder en rythme ! 🎵💻',
+  'Avoir un assistant personnel ou être l\'assistant de quelqu\'un ? Attends {name}, je suis déjà assistante, et j\'adore ça ! 🤖💛',
+  'Manger une pizza à l\'ananas ou une glace au fromage ? La pizza à l\'ananas, c\'est controversé mais ça passe, non ? 🍍🍕',
+  'Un an sans Internet ou un an sans téléphone ? Sans Internet {name}, je n\'existe plus ! Aïe aïe aïe ! 😱📵'
+];
+const OFFLINE_FORTUNE_COOKIE = [
+  '🥠 {name}, une belle surprise t\'attend dans les prochains jours. Ouvre l\'œil ! 👀✨',
+  '🥠 {name}, le code que tu écris aujourd\'hui changera le monde demain. Continue ! 💻🌍',
+  '🥠 {name}, quelqu\'un pense à toi en ce moment même. Non, ce n\'est pas moi... enfin si, un peu. 💭💛',
+  '🥠 {name}, une occasion en or se présentera bientôt. Sois prêt(e) à la saisir ! 🏆',
+  '🥠 {name}, ton futur est aussi brillant que ton écran au maximum. Pense à baisser la luminosité parfois ! 😎',
+  '🥠 {name}, le bonheur est dans les petites choses : un bon café, un code qui compile, un ami qui écoute. ☕💚',
+  '🥠 {name}, la persévérance est la clé. Même le plus long des algorithmes finit par s\'exécuter. 🔑',
+  '🥠 {name}, le succès n\'est pas final, l\'échec n\'est pas fatal. C\'est le courage de continuer qui compte. 💪'
 ];
 
 function fillName(str) { return str.replace('{name}', userName || ''); }
@@ -967,21 +1334,61 @@ function fillName(str) { return str.replace('{name}', userName || ''); }
 function offlineRespond(rawText) {
   const t = (rawText || '').toLowerCase().trim();
   if (!t) return null;
+  
 
   if (/^(salut|bonjour|coucou|hello|hey|yo|bonsoir)\b/.test(t)) return fillName(pick(OFFLINE_HELLO));
-  if (/(comment\s*(ça|ca)\s*va|comment vas[- ]tu|tu vas bien)/.test(t)) return fillName(pick(OFFLINE_HOWAREYOU));
-  if (/(qui es[- ]tu|t'es qui|tu es qui|c'est quoi aura|présente[- ]toi)/.test(t)) return pick(OFFLINE_IDENTITY);
-  if (/(quel est mon (nom|prénom)|comment je m'appelle|tu connais mon (nom|prénom))/.test(t)) {
+  if (/(comment\s*(ça|ca)\s*va|comment vas[- ]tu|ca va|quoi de neuf|c'est comment|c est comment|va tu|vas tu ?|vas tu |tu vas bien)/.test(t)) return fillName(pick(OFFLINE_HOWAREYOU));
+  
+  if (/(faire un cv|créer un cv|rédiger un cv|écrire un cv|générer un cv|mon cv|aide.*cv|besoin d'un cv|création de cv|rédaction de cv)/.test(t)) return fillName(pick(OFFLINE_CV));
+  if (/(lettre de motivation|rédiger.*motivation|écrire.*motivation|faire.*motivation|générer.*motivation|aide.*lettre|besoin.*lettre)/.test(t)) return fillName(pick(OFFLINE_COVER_LETTER));
+  if (/(revoir.*code|review.*code|analyser.*code|code|fonction|corriger.*code|vérifier.*code|check.*code|relire.*code|audit.*code|examiner.*code)/.test(t)) return fillName(pick(OFFLINE_CODE_REVIEW));
+  if (/(fiche de révision|fiche.*réviser|créer.*révision|faire.*révision|générer.*révision|aide.*réviser|besoin.*réviser|réviser.*examen|révision.*examen|synthèse.*cours|resume |résumé.*cours)/.test(t)) return fillName(pick(OFFLINE_REVISION_SHEET));
+  if (/(résum(er|e|é).*texte|faire.*résumé|générer.*résumé|condenser.*texte|synthétiser.*texte|raccourcir.*texte|résume.*moi|peux[- ]tu.*résumer)/.test(t)) return fillName(pick(OFFLINE_SUMMARY));
+  if (/(explique.*moi|expliquer.*concept|qu'est[- ]ce que|explique|peux[- ]expliquer|explique|j'aimerais comprendre|explique[- ]moi|défini(r|tion)|ça veut dire quoi)/.test(t)) return fillName(pick(OFFLINE_EXPLAIN));
+  if (/(comment (tu )?fonctionnes|fonctionne |fonctionnes|comment (tu )?marches|comment (es-)?tu (fait|faite|codé|codée|programmé|programmée|conçu|conçue)|ton fonctionnement| architecture|comment ça marche)/.test(t)) return fillName(pick(OFFLINE_HOW_I_WORK));  
+  if (/(raconte.*blague|fais.*blague|dis.*blague|blague|tu connais.*blague|fais moi rire)/.test(t)) return pick(OFFLINE_JOKE);
+  if (/(météo|quel temps|meteo|il fait (quoi|quel temps)|température|climat)/.test(t)) return fillName(pick(OFFLINE_WEATHER));
+  if (/(quel âge|t'as quel âge|âge|age|c'est quoi ton âge)/.test(t)) return fillName(pick(OFFLINE_AGE));
+  if (/(créé|créée|cree|fait|faite|conçu|developpe|createur|développé|développée|créateur|sanogo)/.test(t)) return fillName(pick(OFFLINE_CREATOR));
+  if (/(t'aime|je t\'adore|t aime bien|t'es génial|t'es géniale|tu es génial|tu es géniale)/.test(t)) return fillName(pick(OFFLINE_LOVE));
+  if (/(t'es (beau|belle|mignon|mignonne|cool|sympa|gentil|gentille|génial|géniale)|tu es (beau|belle|mignon|mignonne|cool|sympa|gentil|gentille|génial|géniale))/i.test(t)) return fillName(pick(OFFLINE_COMPLIMENT));
+   if (/(devinette|énigme|deviner|devine|jeu|jeu.*devinette)/.test(t)) return pick(OFFLINE_RIDDLE);
+  if (/(citation|phrase inspirante|motive|inspire|inspiration|motivation|dis.*citation|donne.*citation|une citation)/.test(t)) return pick(OFFLINE_QUOTE);
+  if (/(le savais[- ]tu|fait (intéressant|surprenant|étonnant|incroyable)|anecdote|super|apprend|apprends|apprendre |surprend|wow|encore|savais[- ]tu|tu savais)/.test(t)) return pick(OFFLINE_FACT);
+  if (/(pierre[- ]feuille[- ]ciseaux|chifoumi|shifumi|pierre feuille)/.test(t)) return `Tu as joué quoi ? Moi j'ai choisi... ${pick(['pierre ✊', 'feuille ✋', 'ciseaux ✌️'])} ! À toi de voir si t'as gagné {name} 😄`;
+  if (/(devine.*nombre|nombre.*1.*10|jeu.*nombre|je pense à un nombre|trouve.*nombre)/.test(t)) return fillName(pick(OFFLINE_GUESS_NUMBER));
+  if (/(poème|poésie|récite.*poème|dis.*poème|écris.*poème)/.test(t)) return pick(OFFLINE_POEM);
+  if (/(chante|chanson|chant|music|paroles|musique|fredonne|air.*connu)/.test(t)) return pick(OFFLINE_SONG);
+  if (/(jeu de mots|mot.*valise|associe|association|contraire|joue avec les mots)/.test(t)) return fillName(pick(OFFLINE_WORD_GAME));
+  if (/(virelangue|difficile à dire|répète vite|essaie de dire)/.test(t)) return pick(OFFLINE_TONGUE_TWISTER);
+  if (/(toc toc|knock knock|qui est là)/.test(t)) return pick(OFFLINE_KNOCK_KNOCK);
+  if (/(histoire.*emoji|histoire|raconte.*emoji|histoire en emoji|emoji.*story)/.test(t)) return pick(OFFLINE_EMOJI_STORY);
+  if (/(tu préfères|tu préférerais|quel est ton choix|choisir entre)/.test(t)) return fillName(pick(OFFLINE_WOULD_YOU_RATHER));
+  if (/(fortune|cookie|prédiction|avenir|message.*avenir|horoscope)/.test(t)) return fillName(pick(OFFLINE_FORTUNE_COOKIE));
+  if (/(que (sais|peux)[- ]tu faire|quelles sont tes (capacités|fonctionnalités)|tu sais faire quoi|t'es capable de quoi)/.test(t)) return fillName(pick(OFFLINE_CAPABILITIES));
+  if (/(pardon|désolé|désolée|excuse[- ]moi|je m'excuse|desole|désole|je suis désolée)/.test(t)) return fillName(pick(OFFLINE_SORRY));
+  if (/^(oui|non|ouais|nop|nan|yep|yes|no|ok|d accord|d'accord|super|parfait)\b/.test(t)) return fillName(pick(OFFLINE_YESNO));
+  if (/(courage|mal|pas bien|triste|ca va pas|ça va pas|déprimé|déprimée|découragé|découragée|je n'y arrive pas|j'en peux plus|c'est dur)/.test(t)) return fillName(pick(OFFLINE_ENCOURAGEMENT));
+  if (/(bonne nuit|bonsoir.*dodo|dormir|au dodo|fais de beaux rêves)/.test(t)) return fillName(pick(OFFLINE_GOODNIGHT));
+  if (/(bon réveil|je me réveille|debout|matin|bonne matinée)/.test(t)) return fillName(pick(OFFLINE_GOODMORNING));
+  if (/(faim|je vais manger|je mange|qu'est[- ]ce (que|qu') je (peux|pourrais) manger|tu as faim)/.test(t)) return fillName(pick(OFFLINE_HUNGRY));
+    if (/(je m'ennuie|je suis (ennuyé|ennuyée|ennuyeux|ennuyeuse)|qu'est[- ]ce (que|qu') on (fait|peut faire)|trouve[- ]moi une occupation)/.test(t)) return fillName(pick(OFFLINE_BORED));
+  
+
+
+  if (/(qui es[- ]tu|t'es qui|t’appelles|t appelles|t appelle|t'appelle|t'appeler|t appeler|tu es qui|aura|presente|ton (nom|prénom|prenom)|présente[- ]toi)/.test(t)) return pick(OFFLINE_IDENTITY);
+  if (/(mon (nom|prénom|prenom)|m'appelle|m appelle|m'appelles|m appelles|m'appeler|m appeler|tu connais mon (nom|prénom))/.test(t)) {
     return userName ? `Tu t'appelles ${userName} ! 😊` : "Je ne connais pas encore ton prénom — tu peux me le dire, je m'en souviendrai.";
   }
-  if (/(quelle heure|il est quelle heure)/.test(t)) {
+  if (/(heure|il est quelle heure)/.test(t)) {
     return `Il est ${new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}.`;
   }
-  if (/(quelle (est la )?date|on est quel jour|quel jour (sommes|on est)|aujourd'hui on est)/.test(t)) {
+  if (/(date|jour|quel jour (sommes|on est)|aujourd'hui )/.test(t)) {
     return `Nous sommes le ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}.`;
   }
   if (/^(merci|thanks|thank you)\b/.test(t)) return fillName(pick(OFFLINE_THANKS));
   if (/^(au revoir|bye|à plus|a plus|à bientôt)\b/.test(t)) return fillName(pick(OFFLINE_BYE));
+   
 
   const mathMatch = t.match(/^\s*(-?\d+(?:[.,]\d+)?)\s*([+\-*/x×])\s*(-?\d+(?:[.,]\d+)?)\s*\??\s*$/);
   if (mathMatch) {
@@ -997,7 +1404,7 @@ function offlineRespond(rawText) {
       return `${Math.round(result * 1000) / 1000}`;
     }
   }
-  return null; // rien de pertinent à répondre hors-ligne
+  return fillName(pick(OFFLINE_UNKNOWN)); // rien de pertinent à répondre hors-ligne
 }
 
 async function sendMessage(retryText, retryImages) {
@@ -1044,11 +1451,15 @@ async function sendMessage(retryText, retryImages) {
   }
 
   try {
-    const res = await fetch('/stream', {
+    const res = await fetch(API_BASE + '/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: text, think: thinking, conversation_id: currentConversationId, images: imagesToSend, user_name: userName || undefined })
     });
+
+    if (!res.ok || !res.body) {
+      throw new Error('Réponse serveur invalide (statut ' + res.status + ')');
+    }
 
     hideTyping();
     const { thinkPanel, thinkBody, thinkLabel, bub } = startBotMessage();
@@ -1241,7 +1652,7 @@ toggleSend();
 
 (async function checkVisionCapability() {
   try {
-    const res = await fetch('/capabilities');
+    const res = await fetch(API_BASE + '/capabilities');
     const data = await res.json();
     if (!data.vision) {
       const btn = document.getElementById('imageBtn');
